@@ -1,0 +1,46 @@
+news_domains:
+  # Major Argentine news outlets
+  - clarin.com
+  - lanacion.com.ar
+  - pagina12.com.ar
+  - infobae.com
+  - ambito.com
+  - cronista.com
+  - ole.com.ar
+  - tn.com.ar
+  - c5n.com
+  - a24.com
+  - canal26.com
+  - eldestape.com
+  - minutouno.com
+  - diarioregistrado.com
+  - perfil.com
+  - laizquierdadiario.com
+  - noticiasargentinas.com
+  - continental.com.ar
+  
+  # Regional Argentine news
+  - lmcipolletti.com
+  - rionegro.com.ar
+  - losandes.com.ar
+  - lavoz.com.ar
+  - eldoce.tv
+  - telam.com.ar
+  - lagaceta.com.ar
+  - diariopopular.com.ar
+  - diariouno.com.ar
+  - mdzol.com
+  
+  # Argentine business/economy
+  - cronista.com
+  - iprofesional.com
+  - apertura.com
+  - economiaynegocios.com.ar
+
+blocked_domains:
+  - reddit.com
+  - imgur.com
+  - youtube.com
+  - twitter.com
+  - facebook.com
+  - instagram.com

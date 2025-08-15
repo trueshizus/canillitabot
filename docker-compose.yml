@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  canillitabot:
+    build: .
+    container_name: canillitabot
+    restart: unless-stopped
+    environment:
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
+      - REDDIT_USERNAME=${REDDIT_USERNAME}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    networks:
+      - canillitabot-network
+
+networks:
+  canillitabot-network:
+    driver: bridge

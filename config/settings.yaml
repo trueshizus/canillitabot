@@ -1,0 +1,31 @@
+reddit:
+  subreddits:
+    - "argentina_dev"
+  check_interval: 30  # seconds between checks
+  max_posts_per_check: 10
+bot:
+  comment_template: |    
+    {content}
+    
+    ---
+    
+    *[Link a la noticia]({url})*
+    
+    ^(CanillitaBot - extraigo contenido de artículos para hacerlos más accesibles. | Feedback bienvenido)
+  
+  max_article_length: 2000  # characters
+  min_article_length: 200   # characters
+
+extraction:
+  timeout: 15  # seconds
+  max_retries: 3
+  user_agent: "CanillitaBot/1.0 (News Bot)"
+
+database:
+  path: "data/processed_posts.db"
+  cleanup_days: 30  # remove entries older than this
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/canillitabot.log"
