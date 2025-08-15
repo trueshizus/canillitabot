@@ -133,26 +133,34 @@ class Config:
         except Exception:
             return ""
     
-    def _load_provider_config(self, provider_name: str) -> Optional[Dict[str, Any]]:
-        """Load provider configuration from file"""
-        # Try different filename variations
-        possible_names = [
-            provider_name,  # exact match (e.g., "infobae.com")
-            provider_name.replace('.com', ''),  # remove .com (e.g., "infobae") 
-            provider_name.replace('.com.ar', ''),  # remove .com.ar (e.g., "lanacion")
-            provider_name.split('.')[0]  # first part only (e.g., "infobae" from "infobae.com")
-        ]
+    def _load_provider_config(self, domain: str) -> Optional[Dict[str, Any]]:
+        """Load provider configuration by exact domain match"""
+        provider_file = self.providers_path / f"{domain}.yaml"
         
-        for name in possible_names:
-            provider_file = self.providers_path / f"{name}.yaml"
-            if provider_file.exists():
-                try:
-                    return self._load_yaml(provider_file)
-                except Exception as e:
-                    print(f"Error loading provider config {name}: {e}")
-                    continue
+        if provider_file.exists():
+            try:
+                config = self._load_yaml(provider_file)
+                if self._validate_provider_config(config, domain):
+                    return config
+            except Exception as e:
+                print(f"Error loading provider config {domain}: {e}")
         
         return None
+    
+    def _validate_provider_config(self, config: Dict[str, Any], domain: str) -> bool:
+        """Basic validation of provider configuration"""
+        required_keys = ['content']
+        
+        for key in required_keys:
+            if key not in config:
+                print(f"Provider {domain} missing required key: {key}")
+                return False
+        
+        if 'selectors' not in config.get('content', {}):
+            print(f"Provider {domain} missing content selectors")
+            return False
+        
+        return True
     
     def get_default_provider_config(self) -> Dict[str, Any]:
         """Get default provider configuration"""
