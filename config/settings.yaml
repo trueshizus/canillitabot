@@ -1,5 +1,6 @@
 reddit:
   subreddits:
+    - "argentina"
     - "argentina_dev"
   check_interval: 30  # seconds between checks
   max_posts_per_check: 10

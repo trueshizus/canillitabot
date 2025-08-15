@@ -120,7 +120,14 @@ class RedditClient:
             
             # Post the main comment
             main_comment = submission.reply(comments[0])
-            logger.info(f"Posted main comment on post {submission.id}: {submission.title}")
+            
+            # Try to sticky/pin the comment (only works if bot is a moderator)
+            try:
+                main_comment.mod.distinguish(how='yes', sticky=True)
+                logger.info(f"Posted and pinned main comment on post {submission.id}: {submission.title}")
+            except Exception as pin_error:
+                logger.debug(f"Could not pin comment (not a moderator): {pin_error}")
+                logger.info(f"Posted main comment on post {submission.id}: {submission.title}")
             
             # Rate limiting after main comment
             time.sleep(2)
