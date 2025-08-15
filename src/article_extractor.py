@@ -19,30 +19,45 @@ class ArticleExtractor:
         })
     
     def extract_article(self, url: str) -> Optional[Dict[str, Any]]:
-        """Extract article content from URL with structured formatting"""
+        """Extract article content from URL with provider-specific formatting"""
         try:
-            # Try structured extraction first
-            article_data = self._extract_structured_content(url)
+            # Get provider-specific configuration for this URL
+            provider_config = self.config.get_provider_config(url)
+            domain = self.config._extract_domain(url)
             
-            if article_data and self._is_valid_article(article_data):
-                return article_data
+            logger.info(f"Using provider '{provider_config.get('name', 'unknown')}' for domain '{domain}'")
             
-            # Fallback to newspaper3k with enhanced formatting
-            logger.info(f"Structured extraction failed for {url}, trying newspaper3k")
-            article_data = self._extract_with_newspaper_enhanced(url)
+            # Try extraction methods in configured priority order
+            extraction_methods = provider_config.get('method_priority', ['structured_beautifulsoup', 'enhanced_newspaper3k'])
             
-            if article_data and self._is_valid_article(article_data):
-                return article_data
+            for method in extraction_methods:
+                try:
+                    if method == 'structured_beautifulsoup':
+                        article_data = self._extract_structured_content(url, provider_config)
+                    elif method == 'enhanced_newspaper3k':
+                        article_data = self._extract_with_newspaper_enhanced(url, provider_config)
+                    else:
+                        logger.warning(f"Unknown extraction method: {method}")
+                        continue
+                    
+                    if article_data and self._is_valid_article(article_data, provider_config):
+                        article_data['extraction_method'] = method
+                        article_data['provider'] = provider_config.get('name', 'unknown')
+                        return article_data
+                        
+                except Exception as e:
+                    logger.warning(f"Extraction method '{method}' failed for {url}: {e}")
+                    continue
             
-            logger.warning(f"Could not extract valid content from {url}")
+            logger.warning(f"All extraction methods failed for {url}")
             return None
             
         except Exception as e:
             logger.error(f"Error extracting article from {url}: {e}")
             return None
     
-    def _extract_structured_content(self, url: str) -> Optional[Dict[str, Any]]:
-        """Extract article with preserved structure using BeautifulSoup"""
+    def _extract_structured_content(self, url: str, provider_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Extract article with preserved structure using BeautifulSoup and provider config"""
         try:
             response = self.session.get(
                 url, 
@@ -53,34 +68,37 @@ class ArticleExtractor:
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Remove unwanted elements first
-            self._remove_unwanted_elements(soup)
+            # Remove unwanted elements first using provider config
+            self._remove_unwanted_elements_provider(soup, provider_config)
             
-            # Extract title
-            title = self._extract_title(soup)
+            # Extract title using provider config
+            title = self._extract_title_provider(soup, provider_config)
             
-            # Extract structured content
-            structured_content = self._extract_structured_content_from_soup(soup)
+            # Extract structured content using provider config
+            structured_content = self._extract_content_provider(soup, provider_config)
             
             if not title or not structured_content:
                 return None
             
+            # Apply provider-specific text cleanup
+            cleaned_content = self._apply_provider_cleanup(structured_content, provider_config)
+            
             return {
                 'title': title,
-                'content': structured_content,
+                'content': cleaned_content,
                 'summary': '',
-                'authors': self._extract_authors(soup),
-                'publish_date': self._extract_publish_date(soup),
+                'authors': self._extract_authors_provider(soup, provider_config),
+                'publish_date': self._extract_publish_date_provider(soup, provider_config),
                 'url': url,
-                'extraction_method': 'structured_beautifulsoup'
+                'extraction_method': 'provider_structured'
             }
             
         except Exception as e:
-            logger.debug(f"Structured extraction failed for {url}: {e}")
+            logger.debug(f"Provider structured extraction failed for {url}: {e}")
             return None
     
-    def _extract_with_newspaper_enhanced(self, url: str) -> Optional[Dict[str, Any]]:
-        """Extract article using newspaper3k with enhanced formatting"""
+    def _extract_with_newspaper_enhanced(self, url: str, provider_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Extract article using newspaper3k with provider-specific enhancements"""
         try:
             article = Article(url)
             article.download()
@@ -89,19 +107,27 @@ class ArticleExtractor:
             # Get the raw HTML and enhance the text formatting
             response = self.session.get(url, timeout=self.config.extraction_timeout)
             soup = BeautifulSoup(response.content, 'html.parser')
-            self._remove_unwanted_elements(soup)
+            
+            # Use provider-specific cleanup instead of generic
+            self._remove_unwanted_elements_provider(soup, provider_config)
             
             # Try to enhance newspaper3k output with structure
             enhanced_content = self._enhance_newspaper_content(article.text, soup)
             
+            # Apply provider-specific text cleanup
+            cleaned_content = self._apply_provider_cleanup(enhanced_content, provider_config)
+            
+            # Clean title using provider config
+            cleaned_title = self._clean_title_provider(article.title, provider_config) if article.title else ""
+            
             return {
-                'title': article.title,
-                'content': enhanced_content,
+                'title': cleaned_title,
+                'content': cleaned_content,
                 'summary': article.summary if hasattr(article, 'summary') else '',
                 'authors': article.authors,
                 'publish_date': article.publish_date,
                 'url': url,
-                'extraction_method': 'enhanced_newspaper3k'
+                'extraction_method': 'enhanced_newspaper3k_provider'
             }
             
         except Exception as e:
@@ -311,6 +337,167 @@ class ArticleExtractor:
         
         return self._final_content_cleanup(enhanced_text)
     
+    # Provider-specific extraction methods
+    def _remove_unwanted_elements_provider(self, soup: BeautifulSoup, provider_config: Dict[str, Any]):
+        """Remove unwanted elements based on provider configuration"""
+        # Remove elements by selector
+        remove_elements = provider_config.get('remove_elements', [])
+        for selector in remove_elements:
+            for element in soup.select(selector):
+                element.decompose()
+        
+        # Remove elements by class patterns  
+        remove_classes = provider_config.get('remove_classes', [])
+        for class_pattern in remove_classes:
+            for element in soup.find_all(class_=re.compile(class_pattern, re.I)):
+                element.decompose()
+    
+    def _extract_title_provider(self, soup: BeautifulSoup, provider_config: Dict[str, Any]) -> str:
+        """Extract title using provider-specific selectors"""
+        title_selectors = provider_config.get('title', {}).get('selectors', ['h1', 'title'])
+        
+        for selector in title_selectors:
+            element = soup.select_one(selector)
+            if element:
+                title = element.get('content') if element.get('content') else element.get_text()
+                if title and len(title.strip()) > 5:
+                    return self._clean_title_provider(title.strip(), provider_config)
+        
+        return ""
+    
+    def _clean_title_provider(self, title: str, provider_config: Dict[str, Any]) -> str:
+        """Clean title using provider-specific patterns"""
+        cleanup_patterns = provider_config.get('title', {}).get('cleanup_patterns', [])
+        
+        for pattern in cleanup_patterns:
+            title = re.sub(pattern, '', title, flags=re.I)
+        
+        return title.strip()
+    
+    def _extract_content_provider(self, soup: BeautifulSoup, provider_config: Dict[str, Any]) -> str:
+        """Extract content using provider-specific selectors"""
+        content_selectors = provider_config.get('content', {}).get('selectors', ['article'])
+        
+        article_container = None
+        for selector in content_selectors:
+            container = soup.select_one(selector)
+            if container:
+                article_container = container
+                break
+        
+        if not article_container:
+            return ""
+        
+        # Extract content using provider-specific elements
+        include_elements = provider_config.get('content', {}).get('include_elements', ['p', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        
+        return self._process_provider_content_structure(article_container, include_elements)
+    
+    def _process_provider_content_structure(self, container: Tag, include_elements: List[str]) -> str:
+        """Process content structure based on provider configuration"""
+        structured_parts = []
+        
+        # Create CSS selector from include_elements list
+        selector = ', '.join(include_elements)
+        elements = container.select(selector)
+        
+        for element in elements:
+            if not self._is_meaningful_element(element):
+                continue
+                
+            text = element.get_text().strip()
+            if not text:
+                continue
+            
+            # Process based on element type (same as before but more flexible)
+            if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                level = int(element.name[1])
+                if level == 1:
+                    structured_parts.append(f"# {text}\n")
+                elif level == 2:
+                    structured_parts.append(f"## {text}\n")
+                elif level == 3:
+                    structured_parts.append(f"### {text}\n")
+                else:
+                    structured_parts.append(f"**{text}**\n")
+            
+            elif element.name == 'p':
+                structured_parts.append(f"{text}\n")
+            
+            elif element.name in ['ul', 'ol']:
+                list_items = []
+                for li in element.find_all('li'):
+                    li_text = li.get_text().strip()
+                    if li_text:
+                        if element.name == 'ul':
+                            list_items.append(f"• {li_text}")
+                        else:
+                            list_items.append(f"{len(list_items) + 1}. {li_text}")
+                
+                if list_items:
+                    structured_parts.append('\n'.join(list_items) + '\n')
+            
+            elif element.name == 'blockquote':
+                structured_parts.append(f"> {text}\n")
+        
+        content = '\n'.join(structured_parts).strip()
+        content = re.sub(r'\n{3,}', '\n\n', content)  # Clean up excessive newlines
+        
+        return content
+    
+    def _apply_provider_cleanup(self, content: str, provider_config: Dict[str, Any]) -> str:
+        """Apply provider-specific text cleanup patterns"""
+        if not content:
+            return ""
+        
+        cleanup_patterns = provider_config.get('cleanup_patterns', [])
+        
+        for pattern in cleanup_patterns:
+            content = re.sub(pattern, '', content, flags=re.I | re.MULTILINE)
+        
+        # Clean up whitespace
+        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)  # Max 2 consecutive newlines
+        content = re.sub(r'[ \t]+', ' ', content)  # Normalize spaces
+        content = content.strip()
+        
+        # Apply length limits from provider config
+        max_length = provider_config.get('content', {}).get('max_length', self.config.max_article_length)
+        if len(content) > max_length:
+            content = content[:max_length]
+            # Try to end at a sentence or paragraph
+            last_sentence = max(content.rfind('.'), content.rfind('\n\n'))
+            if last_sentence > max_length * 0.8:
+                content = content[:last_sentence + 1]
+        
+        return content
+    
+    def _extract_authors_provider(self, soup: BeautifulSoup, provider_config: Dict[str, Any]) -> List[str]:
+        """Extract authors using provider configuration"""
+        author_selectors = provider_config.get('author', {}).get('selectors', ['.author', '.autor'])
+        
+        authors = []
+        for selector in author_selectors:
+            elements = soup.select(selector)
+            for element in elements:
+                author = element.get('content') or element.get_text()
+                if author and author.strip():
+                    authors.append(author.strip())
+        
+        return list(set(authors))  # Remove duplicates
+    
+    def _extract_publish_date_provider(self, soup: BeautifulSoup, provider_config: Dict[str, Any]):
+        """Extract publish date using provider configuration"""
+        date_selectors = provider_config.get('date', {}).get('selectors', ['time', '.date'])
+        
+        for selector in date_selectors:
+            element = soup.select_one(selector)
+            if element:
+                date_str = element.get('content') or element.get('datetime') or element.get_text()
+                if date_str:
+                    return date_str.strip()
+        
+        return None
+    
     def _extract_title(self, soup: BeautifulSoup) -> str:
         """Extract article title"""
         selectors = [
@@ -426,17 +613,20 @@ class ArticleExtractor:
         
         return content
     
-    def _is_valid_article(self, article_data: Dict[str, Any]) -> bool:
-        """Validate extracted article data"""
+    def _is_valid_article(self, article_data: Dict[str, Any], provider_config: Dict[str, Any]) -> bool:
+        """Validate extracted article data using provider configuration"""
         if not article_data:
             return False
         
         content = article_data.get('content', '')
         title = article_data.get('title', '')
         
+        # Get provider-specific limits
+        min_length = provider_config.get('content', {}).get('min_length', self.config.min_article_length)
+        
         # Check minimum content length
-        if len(content) < self.config.min_article_length:
-            logger.debug(f"Article too short: {len(content)} characters")
+        if len(content) < min_length:
+            logger.debug(f"Article too short: {len(content)} characters (min: {min_length})")
             return False
         
         # Check if we have a title
@@ -444,11 +634,35 @@ class ArticleExtractor:
             logger.debug("Article missing valid title")
             return False
         
-        # Check content quality
-        if self._is_low_quality_content(content):
+        # Check provider-specific rejection patterns
+        reject_patterns = provider_config.get('quality', {}).get('reject_if_contains', [])
+        for pattern in reject_patterns:
+            if re.search(pattern, content, re.I | re.MULTILINE):
+                logger.debug(f"Article content matches rejection pattern: {pattern}")
+                return False
+        
+        # Check content quality with provider-specific ratio
+        min_ratio = provider_config.get('quality', {}).get('min_text_ratio', 0.6)
+        if self._is_low_quality_content_provider(content, min_ratio):
             return False
         
         return True
+    
+    def _is_low_quality_content_provider(self, content: str, min_text_ratio: float) -> bool:
+        """Check if content appears to be low quality using provider config"""
+        # Check for excessive repetition
+        lines = [line.strip() for line in content.split('\n') if line.strip()]
+        if len(lines) > 5 and len(set(lines)) < len(lines) * min_text_ratio:
+            logger.debug("Content has too many duplicate lines")
+            return True
+        
+        # Check for reasonable word diversity
+        words = content.lower().split()
+        if len(words) > 50 and len(set(words)) < len(words) * (min_text_ratio * 0.7):
+            logger.debug("Content has poor word diversity")
+            return True
+        
+        return False
     
     def _is_low_quality_content(self, content: str) -> bool:
         """Check if content appears to be low quality"""
