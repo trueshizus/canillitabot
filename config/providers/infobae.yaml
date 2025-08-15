@@ -1,0 +1,109 @@
+# Infobae.com - Provider-specific extraction configuration
+# Based on analysis of: https://www.infobae.com/politica/2025/08/15/patricia-bullrich-confirmo-que-sera-candidata-a-senadora-por-la-ciudad-de-buenos-aires/
+
+# Provider identification
+name: "Infobae"
+domain: "infobae.com"
+
+# Content extraction settings
+content:
+  # Main article content selectors (in priority order)
+  selectors:
+    - "div.body-article"           # Primary content container
+    - "article .body-article"      # Alternative path
+    - "article"                    # Fallback to entire article
+  
+  # Elements to extract within content (for structured parsing)
+  include_elements:
+    - "p"                          # Paragraphs
+    - "h2, h3, h4, h5, h6"        # Sub-headings (h1 is title)
+    - "ul, ol, li"                # Lists
+    - "blockquote"                # Quotes
+  
+  # Minimum content length (characters)
+  min_length: 200
+  
+  # Maximum content length (characters)
+  max_length: 15000
+
+# Title extraction
+title:
+  selectors:
+    - "h1.article-headline"       # Primary title selector (found in analysis)
+    - "h1"                        # Generic h1 fallback
+    - "title"                     # HTML title fallback
+  
+  # Patterns to clean from extracted titles
+  cleanup_patterns:
+    - r'\s*-\s*Infobae\s*$'       # Remove "- Infobae" suffix
+    - r'\s*\|\s*Infobae\s*$'      # Remove "| Infobae" suffix
+    - r'\s*Infobae\s*$'           # Remove trailing "Infobae"
+
+# Elements to remove BEFORE processing content
+remove_elements:
+  # Unwanted sections (based on actual HTML analysis)
+  - "div.feed-list-wrapper"       # "Últimas Noticias" section - CRITICAL!
+  - "div.default-chain-ctn"       # Related articles chain
+  - "div.sharebar-container"      # Social sharing tools
+  - "div.share-bar-article-date-container"  # Date/share info
+  - ".social-share"               # Social sharing buttons
+  - ".advertisement"              # Advertisements
+  - ".ad-wrapper"                 # Ad containers
+  - ".related-articles"           # Related content
+  - ".newsletter-signup"          # Newsletter forms
+  - ".author-info"                # Author bio sections
+  - "nav"                         # Navigation elements
+  - "header"                      # Page headers
+  - "footer"                      # Page footers
+
+# CSS classes to remove (partial matches)
+remove_classes:
+  - "share"                       # Sharing buttons
+  - "social"                      # Social media elements  
+  - "related"                     # Related content
+  - "promo"                       # Promotional content
+  - "ad"                          # Advertisement
+  - "publicidad"                  # Spanish ads
+  - "newsletter"                  # Newsletter signups
+  - "subscription"                # Subscription prompts
+
+# Text patterns to remove from final content (regex patterns)
+cleanup_patterns:
+  - r'^Últimas [Nn]oticias.*?(?=\n\n|\Z)'           # Remove "Últimas noticias" sections
+  - r'^Te puede interesar.*?(?=\n\n|\Z)'            # Remove "Te puede interesar" 
+  - r'^Seguí leyendo.*?(?=\n\n|\Z)'                 # Remove "Seguí leyendo"
+  - r'^Más información.*?(?=\n\n|\Z)'               # Remove "Más información"
+  - r'^Compartir en.*?(?=\n|\Z)'                    # Remove social sharing text
+  - r'^Tags?:.*?(?=\n|\Z)'                          # Remove tags lines
+  - r'^Suscrib[ií]te.*?(?=\n\n|\Z)'                # Remove subscription prompts
+  - r'^\s*Guardar\s*$'                              # Remove "Guardar" (save) buttons
+  - r'^\s*\d{1,2}\s+(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic),?\s+\d{4}.*?EST\s*$'  # Remove timestamp lines
+
+# Author extraction
+author:
+  selectors:
+    - ".author-name"
+    - ".byline"
+    - "[data-element='author']"
+
+# Publication date extraction  
+date:
+  selectors:
+    - ".article-date"
+    - ".publish-date"
+    - "time"
+    - "[datetime]"
+
+# Quality checks
+quality:
+  # Patterns that indicate low-quality extraction
+  reject_if_contains:
+    - r'^Últimas [Nn]oticias'     # If content starts with "Últimas Noticias", reject
+  
+  # Minimum ratio of meaningful content
+  min_text_ratio: 0.7             # At least 70% should be actual text vs markup
+
+# Extraction method priority
+method_priority:
+  - "structured_beautifulsoup"    # Use structured extraction first
+  - "newspaper3k"                 # Fallback to newspaper3k

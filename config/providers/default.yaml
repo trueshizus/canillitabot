@@ -1,0 +1,136 @@
+# Default Provider Configuration
+# Fallback configuration for domains without specific provider configs
+
+# Provider identification
+name: "Default"
+domain: "default"
+
+# Content extraction settings
+content:
+  # Generic article content selectors (in priority order)
+  selectors:
+    - "article"                    # Semantic article element
+    - ".article-content"           # Common article content class
+    - ".post-content"              # Common post content class
+    - ".entry-content"             # Common entry content class
+    - ".content"                   # Generic content class
+    - ".story-body"                # News story body
+    - ".article-body"              # Article body
+    - "[property='articleBody']"   # Schema.org articleBody
+    
+    # Argentine news site specific selectors (from current codebase)
+    - ".nota-contenido"            # Clarín
+    - ".article-text"              # La Nación
+    - ".contenido"                 # Página/12
+    - ".nota-texto"                # Ámbito
+    - ".cuerpo-nota"               # TN
+    - ".entry-content-text"        # General
+  
+  # Elements to extract within content
+  include_elements:
+    - "p"                          # Paragraphs
+    - "h1, h2, h3, h4, h5, h6"     # Headings
+    - "ul, ol, li"                 # Lists
+    - "blockquote"                 # Quotes
+  
+  # Content length limits
+  min_length: 200
+  max_length: 50000                # Use global config default
+
+# Title extraction
+title:
+  selectors:
+    - "h1"                         # Primary heading
+    - ".headline"                  # Common headline class
+    - ".article-title"             # Article title
+    - ".post-title"                # Post title
+    - ".nota-titulo"               # Spanish news title
+    - "[property='og:title']"      # Open Graph title
+    - "title"                      # HTML title (last resort)
+  
+  # Generic title cleanup patterns
+  cleanup_patterns:
+    - r'\s*\|\s*[^|]+$'            # Remove "| Site Name" suffix
+    - r'\s*-\s*[^-]+$'             # Remove "- Site Name" suffix
+
+# Elements to remove BEFORE processing
+remove_elements:
+  # Generic unwanted elements
+  - "script"                       # JavaScript
+  - "style"                        # CSS
+  - "nav"                          # Navigation
+  - "header"                       # Page header
+  - "footer"                       # Page footer
+  - "aside"                        # Sidebar content
+  - ".advertisement"               # Ads
+  - ".ads"                         # Ads
+  - ".social-share"                # Social sharing
+  - ".comments"                    # Comments section
+  - ".related-articles"            # Related articles
+  - ".sidebar"                     # Sidebar
+  - ".menu"                        # Menus
+  - ".newsletter"                  # Newsletter signups
+  - ".subscription"                # Subscription boxes
+
+# CSS classes to remove (partial matches)
+remove_classes:
+  - "ad"                           # Advertisement
+  - "ads"                          # Advertisements
+  - "advertisement"                # Advertisement
+  - "social"                       # Social media
+  - "share"                        # Sharing buttons
+  - "comments"                     # Comments
+  - "related"                      # Related content
+  - "sidebar"                      # Sidebar content
+  - "menu"                         # Menu elements
+  - "navigation"                   # Navigation
+  - "footer"                       # Footer content
+  - "header"                       # Header content
+  - "promo"                        # Promotional content
+  - "newsletter"                   # Newsletter content
+  - "subscription"                 # Subscription content
+
+# Generic Spanish news text cleanup patterns
+cleanup_patterns:
+  - r'^Suscrib[ií]te.*?(?=\n\n|\Z)'                # Subscription prompts
+  - r'^Seguinos.*?redes.*?(?=\n\n|\Z)'             # "Follow us on social media"
+  - r'^Compartir.*?(?=\n|\Z)'                      # Share buttons text
+  - r'^Tags?:.*?(?=\n|\Z)'                         # Tags
+  - r'^Publicidad.*?(?=\n\n|\Z)'                   # Advertisement text
+  - r'^Te puede interesar.*?(?=\n\n|\Z)'           # "You might be interested"
+  - r'^Más información.*?(?=\n\n|\Z)'              # "More information"
+  - r'^Seguir leyendo.*?(?=\n\n|\Z)'               # "Continue reading"
+
+# Author extraction
+author:
+  selectors:
+    - ".author"
+    - ".autor"
+    - ".byline" 
+    - ".writer"
+    - "[property='author']"
+
+# Publication date extraction
+date:
+  selectors:
+    - ".fecha"
+    - ".date"
+    - "time"
+    - "[property='article:published_time']"
+    - "[name='publish_date']"
+
+# Quality checks
+quality:
+  # Minimum text to markup ratio
+  min_text_ratio: 0.6
+  
+  # Patterns that indicate poor extraction
+  reject_if_contains:
+    - r'^Error 404'
+    - r'^Page not found'
+    - r'^Página no encontrada'
+
+# Extraction method priority
+method_priority:
+  - "structured_beautifulsoup"     # Try structured extraction first
+  - "enhanced_newspaper3k"         # Then newspaper3k with enhancements
