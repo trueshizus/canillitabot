@@ -163,14 +163,14 @@ class BotManager:
             )
             return False
         
-        # Format and post comment
-        comment_content = self.reddit_client.format_comment(
+        # Format and post comment(s)
+        formatted_comments = self.reddit_client.format_comment(
             article_content=article_data['content'],
             article_url=submission.url,
             article_title=article_data['title']
         )
         
-        comment_success = self.reddit_client.post_comment(submission, comment_content)
+        comment_success = self.reddit_client.post_comments(submission, formatted_comments)
         
         # Record the result
         self.database.record_processed_post(

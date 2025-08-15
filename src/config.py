@@ -77,6 +77,14 @@ class Config:
         return self.settings['bot']['comment_template']
     
     @property
+    def continuation_template(self) -> str:
+        return self.settings['bot']['continuation_template']
+    
+    @property
+    def max_comment_length(self) -> int:
+        return self.settings['bot']['max_comment_length']
+    
+    @property
     def max_article_length(self) -> int:
         return self.settings['bot']['max_article_length']
     

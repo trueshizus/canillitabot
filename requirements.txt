@@ -4,5 +4,5 @@ beautifulsoup4==4.12.2
 requests==2.31.0
 pyyaml==6.0.1
 python-dotenv==1.0.0
-lxml==4.9.3
+lxml
 nltk==3.8.1

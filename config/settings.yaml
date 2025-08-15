@@ -5,16 +5,22 @@ reddit:
   max_posts_per_check: 10
 bot:
   comment_template: |    
+    # {title}
+    
     {content}
     
     ---
     
     *[Link a la noticia]({url})*
-    
-    ^(CanillitaBot - extraigo contenido de artículos para hacerlos más accesibles. | Feedback bienvenido)
+
+    ^(CanillitaBot v1.0 - Compartiendo noticias para hacerlas más accesibles.)
+
+  continuation_template: |
+    {content}
   
-  max_article_length: 2000  # characters
-  min_article_length: 200   # characters
+  max_comment_length: 10000  # Reddit's comment limit
+  max_article_length: 50000  # Maximum total article length to process
+  min_article_length: 200     # characters
 
 extraction:
   timeout: 15  # seconds
