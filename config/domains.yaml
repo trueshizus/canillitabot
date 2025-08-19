@@ -18,7 +18,9 @@ news_domains:
   - laizquierdadiario.com
   - noticiasargentinas.com
   - continental.com.ar
-  
+  - lapoliticaonline.com
+  - infonegocios.com.ar
+
   # Regional Argentine news
   - lmcipolletti.com
   - rionegro.com.ar
@@ -30,12 +32,14 @@ news_domains:
   - diariopopular.com.ar
   - diariouno.com.ar
   - mdzol.com
+  - eldiarioar.com
   
   # Argentine business/economy
   - cronista.com
   - iprofesional.com
   - apertura.com
   - economiaynegocios.com.ar
+  - eleconomista.com.ar
 
 blocked_domains:
   - reddit.com
