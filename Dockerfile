@@ -21,12 +21,13 @@ RUN python -c "import nltk; nltk.download('punkt')"
 # Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
+COPY run.py ./
 
 # Create directories for data and logs
 RUN mkdir -p data logs
 
 # Set Python path
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash canillitabot
@@ -38,4 +39,4 @@ HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
     CMD python -c "import sys; sys.path.insert(0, '/app/src'); from database import Database; from config import Config; db = Database(Config()); print('OK')" || exit 1
 
 # Default command
-CMD ["python", "src/bot.py"]
+CMD ["python", "run.py"]
