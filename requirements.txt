@@ -7,3 +7,4 @@ python-dotenv==1.0.0
 lxml
 lxml_html_clean
 nltk==3.8.1
+pytest==7.4.0
