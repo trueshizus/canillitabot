@@ -1,8 +1,6 @@
 import time
 import logging
 import signal
-import sys
-from typing import Optional
 from config import Config
 from reddit_client import RedditClient
 from article_extractor import ArticleExtractor
@@ -229,49 +227,3 @@ class BotManager:
             logger.error(f"Error during cleanup: {e}")
         
         logger.info("CanillitaBot stopped")
-
-def main():
-    """Main entry point"""
-    # Setup basic logging first
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    try:
-        # Initialize and start bot
-        bot = BotManager()
-        
-        # Setup detailed logging based on config
-        setup_logging(bot.config)
-        
-        bot.start()
-        
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Bot crashed: {e}")
-        sys.exit(1)
-
-def setup_logging(config: Config):
-    """Setup detailed logging configuration"""
-    # Create logs directory
-    log_path = config.log_file
-    log_dir = '/'.join(log_path.split('/')[:-1])
-    if log_dir:
-        import os
-        os.makedirs(log_dir, exist_ok=True)
-    
-    # Configure logging
-    logging.basicConfig(
-        level=getattr(logging, config.log_level.upper()),
-        format=config.log_format,
-        handlers=[
-            logging.FileHandler(log_path),
-            logging.StreamHandler(sys.stdout)
-        ],
-        force=True
-    )
-
-if __name__ == "__main__":
-    main()
