@@ -48,6 +48,12 @@ cp .env.example .env
 
 # Check processing stats (using venv)
 ./venv/bin/python -c "from src.database import Database; from src.config import Config; db = Database(Config()); print(db.get_processing_stats())"
+
+# Test article extraction with preview
+./venv/bin/python tools/article_preview.py "https://www.infobae.com/some-article-url"
+
+# Run unit tests
+./venv/bin/python -m pytest tests/ -v
 ```
 
 ### Comment Analysis and Monitoring
@@ -74,9 +80,12 @@ cp .env.example .env
 ### Provider-Based Article Extraction Testing
 ```bash
 # Test the new provider-based extraction system (removes "Últimas noticias" sections)
-./venv/bin/python tests/test_infobae_provider.py
+./venv/bin/python tests/test_infobae_integration.py
 
-# Test extraction for a specific domain
+# Test extraction for a specific domain with preview
+./venv/bin/python tools/article_preview.py "https://www.infobae.com/some-article-url"
+
+# Test extraction for a specific domain programmatically
 ./venv/bin/python -c "
 from src.config import Config
 from src.article_extractor import ArticleExtractor
