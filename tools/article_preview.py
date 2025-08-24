@@ -9,6 +9,7 @@ Usage: python article_preview.py "https://example.com/news-article"
 import sys
 import os
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 # Add src directory to Python path
 src_path = Path(__file__).parent.parent / "src"
@@ -51,11 +52,29 @@ def test_extraction(url, show_full=False):
                 self.config = config
             
             def format_comment(self, article_content, article_url, article_title=""):
-                """Use the actual formatting logic from RedditClient"""
+                """Use the actual formatting logic from the refactored RedditClient"""
+                # Import the refactored components
                 from reddit_client import RedditClient
-                client = RedditClient.__new__(RedditClient)
-                client.config = config
-                return client.format_comment(article_content, article_url, article_title)
+                from unittest.mock import Mock, patch
+                
+                # Mock the PRAW Reddit instance to avoid authentication
+                with patch('praw.Reddit') as mock_praw:
+                    mock_reddit_instance = Mock()
+                    mock_reddit_instance.user.me.return_value = Mock(name='testbot', is_suspended=False, created_utc=1234567890)
+                    mock_praw.return_value = mock_reddit_instance
+                    
+                    # Mock environment variables
+                    env_vars = {
+                        'REDDIT_CLIENT_ID': 'test_id',
+                        'REDDIT_CLIENT_SECRET': 'test_secret',
+                        'REDDIT_USERNAME': 'testbot',
+                        'REDDIT_PASSWORD': 'test_pass'
+                    }
+                    
+                    with patch.dict(os.environ, env_vars):
+                        # Create the Reddit client and use its comment formatting
+                        client = RedditClient(self.config)
+                        return client.format_comment(article_content, article_url, article_title)
         
         reddit_client = TestRedditClient(config)
         
