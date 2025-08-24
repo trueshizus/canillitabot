@@ -106,4 +106,4 @@ quality:
 # Extraction method priority
 method_priority:
   - "structured_beautifulsoup"    # Use structured extraction first
-  - "newspaper3k"                 # Fallback to newspaper3k
+  - "enhanced_newspaper3k"        # Fallback to enhanced newspaper3k
