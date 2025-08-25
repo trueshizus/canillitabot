@@ -67,6 +67,12 @@ class Config:
     
     @property
     def subreddits(self) -> List[str]:
+        # Check for environment variable first
+        env_subreddits = os.getenv('REDDIT_SUBREDDITS')
+        if env_subreddits:
+            # Split by comma and strip whitespace
+            return [sub.strip() for sub in env_subreddits.split(',') if sub.strip()]
+        # Fall back to YAML configuration
         return self.settings['reddit']['subreddits']
     
     @property
