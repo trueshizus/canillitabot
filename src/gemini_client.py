@@ -120,7 +120,7 @@ class GeminiClient:
             logger.info("Transcript found. Summarizing using cheap text model.")
             try:
                 prompt = f"""
-                Resumí el siguiente texto, que es la transcripción de un video, en exactamente 3 oraciones concisas que capturen los puntos principales e información clave. No incluyas introduciones como "este video trata sobre" o comentarios adicionales. Escribí solo el resumen directo.
+                Resumí el siguiente texto, que es la transcripción de un video, capturando los puntos principales y que de una idea clara de que se trata. Escribí solo el resumen directo.
 
                 Transcripción:
                 {transcript}
@@ -138,7 +138,7 @@ class GeminiClient:
                 model='models/gemini-2.5-flash',
                 contents=[
                     types.Part(file_data=types.FileData(file_uri=youtube_url)),
-                    types.Part(text='Resumí este video en exactamente 3 oraciones concisas que capturen los puntos principales e información clave. No incluyas introduciones como "este video trata sobre" o comentarios adicionales. Escribí solo el resumen directo.')
+                    types.Part(text='Resumí este video en un máximo de 3 parrafos, usando oraciones concisas que capturen los puntos principales e información clave. No incluyas introduciones como "este video trata sobre" o comentarios adicionales. Escribí solo el resumen directo.')
                 ]
             )
             
