@@ -65,6 +65,11 @@ class Config:
     def reddit_user_agent(self) -> str:
         return os.getenv('REDDIT_USER_AGENT', self.settings['extraction']['user_agent'])
     
+    # Gemini configuration
+    @property
+    def gemini_api_key(self) -> str:
+        return os.getenv('GEMINI_API_KEY', '')
+    
     @property
     def subreddits(self) -> List[str]:
         # Check for environment variable first
