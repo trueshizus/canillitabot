@@ -70,6 +70,16 @@ class Config:
     def gemini_api_key(self) -> str:
         return os.getenv('GEMINI_API_KEY', '')
     
+    # YouTube configuration
+    @property
+    def youtube_enabled(self) -> bool:
+        return self.settings.get('youtube', {}).get('enabled', False)
+    
+    @property
+    def youtube_summary_template(self) -> str:
+        return self.settings.get('youtube', {}).get('summary_template', 
+            '# 🎥 {title}\n\n**Resumen del video:**\n{summary}\n\n---\n\n*[Link al video]({url})*')
+    
     @property
     def subreddits(self) -> List[str]:
         # Check for environment variable first

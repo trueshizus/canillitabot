@@ -5,6 +5,7 @@ from config import Config
 from reddit_client import RedditClient
 from article_extractor import ArticleExtractor
 from database import Database
+from gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,16 @@ class BotManager:
         self.reddit_client = RedditClient(self.config)
         self.article_extractor = ArticleExtractor(self.config)
         self.database = Database(self.config)
+        
+        # Initialize Gemini client if YouTube is enabled
+        self.gemini_client = None
+        if self.config.youtube_enabled:
+            try:
+                self.gemini_client = GeminiClient()
+                logger.info("Gemini client initialized for YouTube processing")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Gemini client: {e}")
+                logger.info("YouTube processing will be disabled")
         
         self.running = False
         self._setup_signal_handlers()
@@ -129,7 +140,12 @@ class BotManager:
         
         # Check if it's a news article
         if not self.reddit_client.is_news_article(submission):
-            logger.debug(f"Post {post_id} is not a news article, skipping")
+            # Check if it's a YouTube video (if enabled)
+            if self.config.youtube_enabled and self.gemini_client and self.reddit_client.is_youtube_video(submission):
+                logger.info(f"Processing YouTube video: {submission.title[:50]}...")
+                return self._process_youtube_video(submission, subreddit_name)
+            
+            logger.debug(f"Post {post_id} is not a news article or YouTube video, skipping")
             self.database.record_processed_post(
                 post_id=post_id,
                 subreddit=subreddit_name,
@@ -138,7 +154,7 @@ class BotManager:
                 author=submission.author.name if submission.author else '[deleted]',
                 created_utc=submission.created_utc,
                 success=False,
-                error_message="Not a news article"
+                error_message="Not a news article or YouTube video"
             )
             return False
         
@@ -189,6 +205,60 @@ class BotManager:
             logger.warning(f"Article extracted but comment failed for post {post_id}")
         
         return comment_success
+    
+    def _process_youtube_video(self, submission, subreddit_name: str) -> bool:
+        """Process a YouTube video submission"""
+        post_id = submission.id
+        
+        try:
+            # Generate video summary and get title using Gemini
+            video_data = self.gemini_client.summarize_youtube_video(submission.url)
+            
+            # Format comment using YouTube template with actual video title
+            formatted_comment = self.config.youtube_summary_template.format(
+                title=video_data['title'],
+                summary=video_data['summary'],
+                url=submission.url
+            )
+            
+            # Post comment
+            comment_success = self.reddit_client.post_comment(submission, formatted_comment)
+            
+            # Record in database
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=comment_success,
+                error_message=None if comment_success else "Comment posting failed"
+            )
+            
+            if comment_success:
+                logger.info(f"Successfully processed and commented on YouTube video {post_id}")
+            else:
+                logger.warning(f"Video summarized but comment failed for post {post_id}")
+            
+            return comment_success
+            
+        except Exception as e:
+            logger.error(f"Error processing YouTube video {post_id}: {e}")
+            
+            # Record failure in database
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=False,
+                error_message=f"YouTube processing failed: {str(e)}"
+            )
+            
+            return False
     
     def _should_cleanup(self) -> bool:
         """Check if periodic cleanup should run"""

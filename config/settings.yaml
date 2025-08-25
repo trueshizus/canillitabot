@@ -1,9 +1,23 @@
 reddit:
   subreddits:
-    - "argentina"
     - "argentina_dev"
   check_interval: 30  # seconds between checks
   max_posts_per_check: 10
+
+youtube:
+  enabled: true  # Enable YouTube video processing
+  summary_template: |
+    # 🎥 {title}
+    
+    **Resumen del video:**
+    {summary}
+    
+    ---
+    
+    *[Link al video]({url})*
+
+    ^(CanillitaBot v1.0 - Resumiendo videos para hacerlos más accesibles.)
+
 bot:
   comment_template: |    
     # {title}

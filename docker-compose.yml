@@ -9,6 +9,7 @@ services:
       - REDDIT_USERNAME=${REDDIT_USERNAME}
       - REDDIT_PASSWORD=${REDDIT_PASSWORD}
       - REDDIT_USER_AGENT=${REDDIT_USER_AGENT}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

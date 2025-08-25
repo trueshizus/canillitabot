@@ -10,14 +10,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 python src/bot.py
 
 # Run with Docker Compose (recommended)
-docker-compose up -d
+docker compose up -d
 
 # View logs in Docker
-docker-compose logs -f canillitabot
+docker compose logs -f canillitabot
 
 # Stop the bot
-docker-compose down
+docker compose down
+
+# Restart the Bot
+docker compose down && docker compose up -d --build
 ```
+
 
 ### Development Setup
 ```bash

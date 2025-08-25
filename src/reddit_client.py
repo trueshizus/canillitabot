@@ -41,6 +41,10 @@ class RedditClient:
         """Check if submission contains a news article link"""
         return self.monitor.is_news_article(submission)
     
+    def is_youtube_video(self, submission: Submission) -> bool:
+        """Check if submission contains a YouTube video link"""
+        return self.monitor.is_youtube_video(submission)
+    
     def validate_submission(self, submission: Submission) -> bool:
         """Validate if submission should be processed"""
         return self.monitor.validate_submission(submission)

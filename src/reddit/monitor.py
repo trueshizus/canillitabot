@@ -46,6 +46,21 @@ class PostMonitor:
         
         return False
     
+    def is_youtube_video(self, submission: Submission) -> bool:
+        """Check if submission contains a YouTube video link"""
+        if not submission.url:
+            return False
+        
+        # Skip self posts
+        if submission.is_self:
+            return False
+        
+        # Check for YouTube URLs
+        youtube_domains = ['youtube.com', 'youtu.be', 'www.youtube.com']
+        url_lower = submission.url.lower()
+        
+        return any(domain in url_lower for domain in youtube_domains)
+    
     def validate_submission(self, submission: Submission) -> bool:
         """Validate if submission should be processed"""
         # Skip if too old (older than 1 hour)
