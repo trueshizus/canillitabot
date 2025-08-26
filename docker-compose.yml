@@ -1,7 +1,10 @@
 services:
   canillitabot:
-    build: .
-    container_name: canillitabot
+    build: 
+      context: .
+      cache_from:
+        - canillitabot:latest
+    image: canillitabot:latest
     restart: unless-stopped
     environment:
       - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
@@ -17,6 +20,12 @@ services:
       - ./config:/app/config:ro
     networks:
       - canillitabot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.path.insert(0, '/app/src'); from database import Database; from config import Config; db = Database(Config()); print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 networks:
   canillitabot-network:
