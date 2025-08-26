@@ -82,13 +82,13 @@ class Config:
     
     @property
     def subreddits(self) -> List[str]:
-        # Check for environment variable first
+        # Get subreddits from environment variable
         env_subreddits = os.getenv('REDDIT_SUBREDDITS')
         if env_subreddits:
             # Split by comma and strip whitespace
             return [sub.strip() for sub in env_subreddits.split(',') if sub.strip()]
-        # Fall back to YAML configuration
-        return self.settings['reddit']['subreddits']
+        # If no environment variable is set, raise an error
+        raise ValueError("REDDIT_SUBREDDITS environment variable must be set")
     
     @property
     def check_interval(self) -> int:
@@ -250,7 +250,7 @@ class Config:
         """Validate configuration"""
         required_env_vars = [
             'REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 
-            'REDDIT_USERNAME', 'REDDIT_PASSWORD'
+            'REDDIT_USERNAME', 'REDDIT_PASSWORD', 'REDDIT_SUBREDDITS'
         ]
         
         missing_vars = []
@@ -267,4 +267,5 @@ class Config:
         if self.check_interval < 10:
             raise ValueError("Check interval must be at least 10 seconds")
         
+        return True
         return True
