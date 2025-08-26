@@ -18,6 +18,8 @@ sys.path.insert(0, str(src_path))
 from config import Config
 from database import Database
 from queue_manager import QueueManager
+from monitoring import get_monitor
+from utils import metrics, error_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +189,29 @@ class CanillitaDashboard:
             }
             
             return jsonify(safe_config)
+        
+        @self.app.route('/api/metrics')
+        def api_metrics():
+            """Get operational metrics"""
+            monitor = get_monitor()
+            if not monitor:
+                return jsonify({"status": "unavailable", "message": "Monitoring not available"})
+            
+            return jsonify(monitor.get_metrics_export())
+        
+        @self.app.route('/api/alerts')
+        def api_alerts():
+            """Get active alerts"""
+            monitor = get_monitor()
+            if not monitor:
+                return jsonify([])
+            
+            return jsonify(monitor.get_active_alerts())
+        
+        @self.app.route('/api/errors')
+        def api_errors():
+            """Get error summary"""
+            return jsonify(error_tracker.get_error_summary())
     
     def _get_connection(self):
         """Helper method to get database connection (for compatibility)"""

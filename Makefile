@@ -207,3 +207,16 @@ start-dashboard:
 
 dashboard-url:
 	@echo "Dashboard URL: http://localhost:5000"
+
+# Monitoring and metrics
+metrics:
+	@echo "Current system metrics:"
+	@./venv/bin/python -c "from src.monitoring import get_monitor; m = get_monitor(); print(m.get_metrics_export() if m else 'Monitoring not initialized')"
+
+health:
+	@echo "System health check:"
+	@./venv/bin/python -c "from src.monitoring import get_monitor; m = get_monitor(); print(m.perform_health_check() if m else 'Monitoring not initialized')"
+
+errors:
+	@echo "Recent errors:"
+	@./venv/bin/python -c "from src.utils import error_tracker; import json; print(json.dumps(error_tracker.get_error_summary(), indent=2))"

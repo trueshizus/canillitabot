@@ -72,3 +72,5 @@ logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "logs/canillitabot.log"
+  structured: true  # Enable JSON structured logging
+  error_tracking: true  # Enable error tracking and metrics

@@ -8,6 +8,8 @@ from database import Database
 from gemini_client import GeminiClient
 from x_extractor import XContentExtractor
 from queue_manager import QueueManager
+from monitoring import initialize_monitoring
+from utils import PerformanceLogger, metrics, error_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,9 @@ class BotManager:
                 logger.info("Falling back to direct processing")
                 self.queue_manager = None
         
+        # Initialize monitoring system
+        self.monitor = initialize_monitoring(self.config)
+        
         self.running = False
         self._setup_signal_handlers()
     
@@ -92,26 +97,39 @@ class BotManager:
     
     def _process_cycle(self):
         """Process one cycle of checking subreddits"""
-        logger.debug("Starting processing cycle")
-        
-        total_processed = 0
-        total_successful = 0
-        
-        for subreddit_name in self.config.subreddits:
-            try:
-                processed, successful = self._process_subreddit(subreddit_name)
-                total_processed += processed
-                total_successful += successful
-                
-            except Exception as e:
-                logger.error(f"Error processing subreddit r/{subreddit_name}: {e}")
-        
-        if total_processed > 0:
-            logger.info(f"Cycle complete: {total_successful}/{total_processed} posts processed successfully")
-        
-        # Periodic cleanup
-        if self._should_cleanup():
-            self._periodic_cleanup()
+        with PerformanceLogger("processing_cycle", logger):
+            logger.debug("Starting processing cycle")
+            
+            total_processed = 0
+            total_successful = 0
+            
+            for subreddit_name in self.config.subreddits:
+                try:
+                    with PerformanceLogger(f"process_subreddit_{subreddit_name}", logger):
+                        processed, successful = self._process_subreddit(subreddit_name)
+                        total_processed += processed
+                        total_successful += successful
+                    
+                except Exception as e:
+                    logger.error(f"Error processing subreddit r/{subreddit_name}: {e}")
+                    error_tracker.track_error(e, {'subreddit': subreddit_name, 'operation': 'process_subreddit'})
+            
+            if total_processed > 0:
+                logger.info(f"Cycle complete: {total_successful}/{total_processed} posts processed successfully")
+                metrics.gauge('cycle_posts_processed', total_processed)
+                metrics.gauge('cycle_success_rate', total_successful / total_processed)
+            
+            # Update queue metrics if available
+            if self.queue_manager and self.queue_manager.is_available():
+                try:
+                    queue_stats = self.queue_manager.get_queue_stats()
+                    self.monitor.update_queue_status(queue_stats)
+                except Exception as e:
+                    logger.debug(f"Could not update queue metrics: {e}")
+            
+            # Periodic cleanup
+            if self._should_cleanup():
+                self._periodic_cleanup()
     
     def _process_subreddit(self, subreddit_name: str) -> tuple[int, int]:
         """Process posts from a single subreddit"""
@@ -184,6 +202,10 @@ class BotManager:
                 'created_utc': submission.created_utc
             }
             
+            # Record post discovery
+            content_type = self._determine_content_type(submission)
+            self.monitor.operational_metrics.record_post_discovered(subreddit_name, content_type)
+            
             job_id = self.queue_manager.enqueue_post_discovery(subreddit_name, submission_data)
             
             if job_id:
@@ -195,8 +217,24 @@ class BotManager:
                 
         except Exception as e:
             logger.error(f"Error enqueuing submission {submission.id}: {e}")
+            error_tracker.track_error(e, {
+                'operation': 'enqueue_submission',
+                'post_id': submission.id,
+                'subreddit': subreddit_name
+            })
             logger.info("Falling back to direct processing")
             return self._process_submission_direct(submission, subreddit_name)
+    
+    def _determine_content_type(self, submission) -> str:
+        """Determine the content type of a submission"""
+        if self.reddit_client.is_news_article(submission):
+            return 'article'
+        elif self.reddit_client.is_youtube_video(submission):
+            return 'youtube'
+        elif self.reddit_client.is_x_twitter_post(submission):
+            return 'twitter'
+        else:
+            return 'unknown'
     
     def _process_submission_direct(self, submission, subreddit_name: str) -> bool:
         """Process a submission directly (without queue)"""
@@ -428,8 +466,26 @@ class BotManager:
                 logger.info(f"24h stats: {stats['successful']}/{stats['total_processed']} successful "
                           f"({stats['success_rate']:.1%} success rate)")
             
+            # Perform health check
+            health_status = self.monitor.perform_health_check()
+            
+            # Log operational metrics summary
+            metrics_summary = self.monitor.operational_metrics.get_summary()
+            logger.info(
+                "Operational metrics summary",
+                extra={'extra_data': {
+                    'uptime_hours': metrics_summary['uptime_hours'],
+                    'posts_processed_success': metrics_summary['posts_processed_success'],
+                    'posts_processed_failed': metrics_summary['posts_processed_failed'],
+                    'success_rate': metrics_summary['success_rate'],
+                    'avg_processing_time': metrics_summary['avg_processing_time_seconds'],
+                    'health_status': health_status['overall_status']
+                }}
+            )
+            
         except Exception as e:
             logger.error(f"Error during periodic cleanup: {e}")
+            error_tracker.track_error(e, {'operation': 'periodic_cleanup'})
     
     def _cleanup(self):
         """Cleanup resources on shutdown"""
