@@ -84,7 +84,10 @@ cp .env.example .env
 ### Provider-Based Article Extraction Testing
 ```bash
 # Test the new provider-based extraction system (removes "Últimas noticias" sections)
-./venv/bin/python tests/test_infobae_integration.py
+./venv/bin/python -m pytest tests/test_infobae_integration.py -v
+
+# Test all providers
+./venv/bin/python -m pytest tests/test_providers.py -v
 
 # Test extraction for a specific domain with preview
 ./venv/bin/python tools/article_preview.py "https://www.infobae.com/some-article-url"
@@ -98,6 +101,19 @@ extractor = ArticleExtractor(config)
 result = extractor.extract_article('https://www.infobae.com/some-article-url')
 print(f'Provider used: {result.get(\"provider\", \"Unknown\")}' if result else 'Failed')
 "
+
+# Test Gemini/YouTube functionality
+./venv/bin/python -m pytest tests/test_gemini.py -v
+./venv/bin/python -m pytest tests/test_youtube.py -v
+
+# Test configuration validation
+./venv/bin/python -m pytest tests/test_config.py -v
+
+# Run full integration tests
+./venv/bin/python -m pytest tests/test_integration.py -v
+
+# Run all tests
+./venv/bin/python -m pytest tests/ -v
 ```
 
 ## Architecture Overview
@@ -116,41 +132,68 @@ CanillitaBot is a Python-based Reddit bot that monitors Argentine news subreddit
 
 **Config** (`src/config.py`): Centralized configuration management loading from YAML files and environment variables. Handles validation of required credentials and settings.
 
+**GeminiClient** (`src/gemini_client.py`): Google Gemini API integration for YouTube video summarization. Handles transcript extraction and AI-powered content analysis.
+
+### Reddit Sub-Components
+
+The Reddit client is composed of specialized components in the `src/reddit/` directory:
+
+**RedditConnection** (`src/reddit/connection.py`): Manages Reddit API authentication and connection handling.
+
+**PostMonitor** (`src/reddit/monitor.py`): Monitors target subreddits for new submissions, validates posts, and detects news articles and YouTube videos.
+
+**CommentManager** (`src/reddit/comments.py`): Handles comment formatting, multi-part comment splitting for long articles, and posting management.
+
+**CommentAnalytics** (`src/reddit/analytics.py`): Provides analytics and monitoring for bot comment performance and engagement.
+
 ### Key Architectural Patterns
 
 - **Multi-stage Content Extraction**: Structured BeautifulSoup parsing with newspaper3k fallback ensures maximum extraction success
+- **Provider-Based System**: Domain-specific extraction configurations in `config/providers/` for optimized content extraction per news source
 - **Intelligent Comment Splitting**: Long articles are automatically split into multiple threaded comments respecting Reddit's character limits
 - **Domain-based Article Detection**: Configurable whitelist/blacklist system for determining valid news sources
+- **AI Integration**: Google Gemini API for YouTube video transcript analysis and summarization
 - **Graceful Error Handling**: Each component handles failures independently without crashing the main loop
 - **Rate Limiting**: Built-in delays and Reddit API best practices to avoid being blocked
+- **Modular Architecture**: Clear separation of concerns with facade pattern for Reddit operations
 
 ### Configuration Files
 
-- `config/settings.yaml`: Main bot configuration (subreddits, intervals, templates)
+- `config/settings.yaml`: Main bot configuration (subreddits, intervals, templates, YouTube settings)
 - `config/domains.yaml`: News domain whitelist and blocked domains  
 - `config/providers/`: Provider-specific extraction configurations
-  - `config/providers/infobae.yaml`: Infobae-specific selectors and cleanup rules
+  - `config/providers/infobae.com.yaml`: Infobae-specific selectors and cleanup rules
   - `config/providers/default.yaml`: Fallback configuration for unknown domains
-- `.env`: Reddit API credentials (not committed to repo)
+- `.env`: Reddit API credentials and Gemini API key (not committed to repo)
 
 ### Data Flow
 
 1. Bot monitors configured subreddits for new posts
 2. Posts are validated (age, domain, not already processed)
-3. Article content is extracted using multi-strategy approach
-4. Content is formatted and split if necessary for Reddit comments
-5. Comments are posted as threaded replies
-6. Processing results are recorded in SQLite database
-7. Periodic cleanup removes old database entries
+3. Article content is extracted using provider-based multi-strategy approach
+4. YouTube videos are processed through Gemini API for transcript analysis and summarization
+5. Content is formatted and split if necessary for Reddit comments
+6. Comments are posted as threaded replies with proper attribution
+7. Processing results are recorded in SQLite database with success/failure tracking
+8. Periodic cleanup removes old database entries and performs maintenance
 
 ### Provider-Based News Site Support
 
-The article extractor uses a provider-based system for site-specific extraction:
-- **Infobae**: Dedicated provider config (`config/providers/infobae.yaml`) that removes "Últimas noticias" sections
+The article extractor uses a sophisticated provider-based system for site-specific extraction:
+- **Infobae**: Dedicated provider config (`config/providers/infobae.com.yaml`) that removes "Últimas noticias" sections and handles specific content structure
 - **Default**: Fallback provider config with generic selectors for Clarín, La Nación, Página/12, TN, Ámbito, etc.
 - **Extensible**: Easy to add new providers by creating `config/providers/{domain}.yaml` files
 - **Domain-aware**: Automatically detects domain and uses appropriate provider configuration
-- **Configurable**: Each provider can specify custom selectors, cleanup patterns, and quality thresholds
+- **Configurable**: Each provider can specify custom selectors, cleanup patterns, quality thresholds, and extraction methods
+- **Quality Assurance**: Text-to-markup ratio validation and content length checks
+
+### AI-Powered Features
+
+- **YouTube Video Processing**: Automatic detection of YouTube links in submissions
+- **Transcript Extraction**: Uses youtube-transcript-api to fetch video transcripts
+- **Gemini Integration**: Google Gemini API analyzes transcripts and generates contextual summaries
+- **Intelligent Summarization**: AI-generated summaries tailored for Reddit comment format
+- **Fallback Handling**: Graceful degradation when transcripts are unavailable or API fails
 
 ### Error Handling Strategy
 
