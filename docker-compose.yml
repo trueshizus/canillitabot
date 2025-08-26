@@ -1,4 +1,19 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - canillitabot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   canillitabot:
     build: 
       context: .
@@ -7,6 +22,11 @@ services:
     image: canillitabot:latest
     restart: unless-stopped
     env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -20,6 +40,38 @@ services:
       retries: 3
       start_period: 20s
 
+  canillitabot-worker:
+    build: 
+      context: .
+      cache_from:
+        - canillitabot:latest
+    image: canillitabot:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    command: ["python", "src/worker.py"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      canillitabot:
+        condition: service_started
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    networks:
+      - canillitabot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; r = redis.from_url('redis://redis:6379/0'); r.ping(); print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 networks:
   canillitabot-network:
     driver: bridge
+
+volumes:
+  redis_data:

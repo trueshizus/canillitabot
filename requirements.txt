@@ -10,3 +10,6 @@ nltk==3.8.1
 pytest==7.4.0
 google-genai
 youtube-transcript-api
+redis==5.0.1
+rq==1.15.1
+flask==3.0.0

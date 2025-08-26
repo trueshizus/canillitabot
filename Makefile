@@ -183,3 +183,20 @@ comment-stats:
 get-comments:
 	@echo "Recent bot comments:"
 	@./venv/bin/python tools/comment_retriever.py comments --limit 10
+
+# Queue management
+queue-status:
+	@echo "Queue system status:"
+	@./venv/bin/python -c "from src.queue_manager import QueueManager; from src.config import Config; qm = QueueManager(Config()); print(qm.get_queue_stats())"
+
+queue-clear:
+	@echo "Clearing all queues..."
+	@./venv/bin/python -c "from src.queue_manager import QueueManager; from src.config import Config; qm = QueueManager(Config()); qm.clear_all_queues(); print('All queues cleared')"
+
+queue-failed:
+	@echo "Failed jobs:"
+	@./venv/bin/python -c "from src.queue_manager import QueueManager; from src.config import Config; qm = QueueManager(Config()); import json; print(json.dumps(qm.get_failed_jobs(), indent=2))"
+
+start-worker:
+	@echo "Starting queue worker..."
+	@./venv/bin/python src/worker.py

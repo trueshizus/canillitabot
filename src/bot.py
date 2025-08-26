@@ -7,6 +7,7 @@ from article_extractor import ArticleExtractor
 from database import Database
 from gemini_client import GeminiClient
 from x_extractor import XContentExtractor
+from queue_manager import QueueManager
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,21 @@ class BotManager:
             except Exception as e:
                 logger.warning(f"Failed to initialize X/Twitter extractor: {e}")
                 logger.info("X/Twitter processing will be disabled")
+        
+        # Initialize queue manager if enabled
+        self.queue_manager = None
+        if getattr(self.config, 'queue_enabled', False):
+            try:
+                self.queue_manager = QueueManager(self.config)
+                if self.queue_manager.is_available():
+                    logger.info("Queue system initialized - posts will be processed asynchronously")
+                else:
+                    logger.warning("Queue system not available - falling back to direct processing")
+                    self.queue_manager = None
+            except Exception as e:
+                logger.warning(f"Failed to initialize queue system: {e}")
+                logger.info("Falling back to direct processing")
+                self.queue_manager = None
         
         self.running = False
         self._setup_signal_handlers()
@@ -126,7 +142,7 @@ class BotManager:
         return processed_count, successful_count
     
     def _process_submission(self, submission, subreddit_name: str) -> bool:
-        """Process a single submission"""
+        """Process a single submission - either queue it or process directly"""
         post_id = submission.id
         
         # Skip if already processed
@@ -148,6 +164,43 @@ class BotManager:
                 error_message="Failed validation"
             )
             return False
+        
+        # If queue system is available, enqueue the post for processing
+        if self.queue_manager and self.queue_manager.is_available():
+            return self._enqueue_submission(submission, subreddit_name)
+        else:
+            # Fall back to direct processing
+            return self._process_submission_direct(submission, subreddit_name)
+    
+    def _enqueue_submission(self, submission, subreddit_name: str) -> bool:
+        """Enqueue a submission for asynchronous processing"""
+        try:
+            submission_data = {
+                'id': submission.id,
+                'title': submission.title,
+                'url': submission.url,
+                'subreddit': subreddit_name,
+                'author': submission.author.name if submission.author else '[deleted]',
+                'created_utc': submission.created_utc
+            }
+            
+            job_id = self.queue_manager.enqueue_post_discovery(subreddit_name, submission_data)
+            
+            if job_id:
+                logger.debug(f"Enqueued post {submission.id} for processing (job: {job_id})")
+                return True
+            else:
+                logger.warning(f"Failed to enqueue post {submission.id}, falling back to direct processing")
+                return self._process_submission_direct(submission, subreddit_name)
+                
+        except Exception as e:
+            logger.error(f"Error enqueuing submission {submission.id}: {e}")
+            logger.info("Falling back to direct processing")
+            return self._process_submission_direct(submission, subreddit_name)
+    
+    def _process_submission_direct(self, submission, subreddit_name: str) -> bool:
+        """Process a submission directly (without queue)"""
+        post_id = submission.id
         
         # Check if it's a news article
         if not self.reddit_client.is_news_article(submission):
@@ -384,6 +437,8 @@ class BotManager:
         try:
             if hasattr(self, 'database'):
                 self.database.close()
+            if hasattr(self, 'queue_manager') and self.queue_manager:
+                self.queue_manager.close()
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
         

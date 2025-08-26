@@ -82,3 +82,16 @@ class RedditClient:
     def check_comment_replies(self, comment_id: str) -> List[Dict]:
         """Check replies to a specific bot comment"""
         return self.analytics.check_comment_replies(comment_id)
+    
+    # URL checking methods for queue workers
+    def is_news_article_url(self, url: str) -> bool:
+        """Check if URL is a news article (for queue workers)"""
+        return self.monitor.is_news_article_url(url)
+    
+    def is_youtube_video_url(self, url: str) -> bool:
+        """Check if URL is a YouTube video (for queue workers)"""
+        return self.monitor.is_youtube_video_url(url)
+    
+    def is_x_twitter_post_url(self, url: str) -> bool:
+        """Check if URL is an X/Twitter post (for queue workers)"""
+        return self.monitor.is_x_twitter_post_url(url)
