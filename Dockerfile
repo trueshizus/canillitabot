@@ -24,6 +24,7 @@ FROM python:3.11-slim as production
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \
+    curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

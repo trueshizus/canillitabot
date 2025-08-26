@@ -69,6 +69,34 @@ services:
       retries: 3
       start_period: 30s
 
+  dashboard:
+    build: 
+      context: .
+      cache_from:
+        - canillitabot:latest
+    image: canillitabot:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    command: ["python", "src/dashboard.py", "--host", "0.0.0.0", "--port", "5000"]
+    ports:
+      - "5000:5000"
+    depends_on:
+      - canillitabot
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    networks:
+      - canillitabot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 networks:
   canillitabot-network:
     driver: bridge

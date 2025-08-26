@@ -200,3 +200,10 @@ queue-failed:
 start-worker:
 	@echo "Starting queue worker..."
 	@./venv/bin/python src/worker.py
+
+start-dashboard:
+	@echo "Starting web dashboard..."
+	@./venv/bin/python src/dashboard.py
+
+dashboard-url:
+	@echo "Dashboard URL: http://localhost:5000"
