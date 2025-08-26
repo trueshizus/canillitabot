@@ -6,6 +6,7 @@ from reddit_client import RedditClient
 from article_extractor import ArticleExtractor
 from database import Database
 from gemini_client import GeminiClient
+from x_extractor import XContentExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,16 @@ class BotManager:
             except Exception as e:
                 logger.warning(f"Failed to initialize Gemini client: {e}")
                 logger.info("YouTube processing will be disabled")
+        
+        # Initialize X/Twitter extractor if enabled
+        self.x_extractor = None
+        if self.config.x_twitter_enabled:
+            try:
+                self.x_extractor = XContentExtractor()
+                logger.info("X/Twitter extractor initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize X/Twitter extractor: {e}")
+                logger.info("X/Twitter processing will be disabled")
         
         self.running = False
         self._setup_signal_handlers()
@@ -145,7 +156,12 @@ class BotManager:
                 logger.info(f"Processing YouTube video: {submission.title[:50]}...")
                 return self._process_youtube_video(submission, subreddit_name)
             
-            logger.debug(f"Post {post_id} is not a news article or YouTube video, skipping")
+            # Check if it's an X/Twitter post (if enabled)
+            if self.config.x_twitter_enabled and self.x_extractor and self.reddit_client.is_x_twitter_post(submission):
+                logger.info(f"Processing X/Twitter post: {submission.title[:50]}...")
+                return self._process_x_twitter_post(submission, subreddit_name)
+            
+            logger.debug(f"Post {post_id} is not a news article, YouTube video, or X/Twitter post, skipping")
             self.database.record_processed_post(
                 post_id=post_id,
                 subreddit=subreddit_name,
@@ -154,7 +170,7 @@ class BotManager:
                 author=submission.author.name if submission.author else '[deleted]',
                 created_utc=submission.created_utc,
                 success=False,
-                error_message="Not a news article or YouTube video"
+                error_message="Not a news article, YouTube video, or X/Twitter post"
             )
             return False
         
@@ -256,6 +272,81 @@ class BotManager:
                 created_utc=submission.created_utc,
                 success=False,
                 error_message=f"YouTube processing failed: {str(e)}"
+            )
+            
+            return False
+    
+    def _process_x_twitter_post(self, submission, subreddit_name: str) -> bool:
+        """Process an X/Twitter post submission"""
+        post_id = submission.id
+        
+        try:
+            # Extract tweet content
+            tweet_data = self.x_extractor.extract_tweet_content(submission.url)
+            
+            if not tweet_data:
+                logger.warning(f"Failed to extract X/Twitter content from {submission.url}")
+                self.database.record_processed_post(
+                    post_id=post_id,
+                    subreddit=subreddit_name,
+                    title=submission.title,
+                    url=submission.url,
+                    author=submission.author.name if submission.author else '[deleted]',
+                    created_utc=submission.created_utc,
+                    success=False,
+                    error_message="X/Twitter content extraction failed"
+                )
+                return False
+            
+            # Prepare media note
+            media_note = ""
+            if tweet_data.get('media_count', 0) > 0:
+                media_note = f"📎 *Contiene {tweet_data['media_count']} archivo(s) multimedia*"
+            
+            # Format comment using X/Twitter template
+            formatted_comment = self.config.x_twitter_comment_template.format(
+                author=tweet_data['author'],
+                date=tweet_data['date'],
+                text=tweet_data['text'],
+                media_note=media_note,
+                url=submission.url
+            )
+            
+            # Post comment
+            comment_success = self.reddit_client.post_comment(submission, formatted_comment)
+            
+            # Record in database
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=comment_success,
+                error_message=None if comment_success else "Comment posting failed"
+            )
+            
+            if comment_success:
+                logger.info(f"Successfully processed and commented on X/Twitter post {post_id}")
+            else:
+                logger.warning(f"X/Twitter content extracted but comment failed for post {post_id}")
+            
+            return comment_success
+            
+        except Exception as e:
+            logger.error(f"Error processing X/Twitter post {post_id}: {e}")
+            
+            # Record failure in database
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=False,
+                error_message=f"X/Twitter processing failed: {str(e)}"
             )
             
             return False

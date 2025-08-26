@@ -16,6 +16,23 @@ youtube:
 
     ^(CanillitaBot v1.0 - Resumiendo videos para hacerlos más accesibles.)
 
+x_twitter:
+  enabled: true  # Enable X/Twitter post processing
+  comment_template: |
+    # 🐦 {author} en X
+    
+    **{date}**
+    
+    {text}
+    
+    {media_note}
+    
+    ---
+    
+    *[Ver post original]({url})*
+
+    ^(CanillitaBot v1.0 - Compartiendo contenido de X para hacerlo más accesible.)
+
 bot:
   comment_template: |    
     # {title}

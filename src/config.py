@@ -80,6 +80,16 @@ class Config:
         return self.settings.get('youtube', {}).get('summary_template', 
             '# 🎥 {title}\n\n**Resumen del video:**\n{summary}\n\n---\n\n*[Link al video]({url})*')
     
+    # X/Twitter configuration
+    @property
+    def x_twitter_enabled(self) -> bool:
+        return self.settings.get('x_twitter', {}).get('enabled', False)
+    
+    @property
+    def x_twitter_comment_template(self) -> str:
+        return self.settings.get('x_twitter', {}).get('comment_template',
+            '# 🐦 {author} en X\n\n**{date}**\n\n{text}\n\n{media_note}\n\n---\n\n*[Ver post original]({url})*')
+    
     @property
     def subreddits(self) -> List[str]:
         # Get subreddits from environment variable

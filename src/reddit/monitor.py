@@ -61,6 +61,26 @@ class PostMonitor:
         
         return any(domain in url_lower for domain in youtube_domains)
     
+    def is_x_twitter_post(self, submission: Submission) -> bool:
+        """Check if submission contains an X/Twitter post link"""
+        if not submission.url:
+            return False
+        
+        # Skip self posts
+        if submission.is_self:
+            return False
+        
+        # Check for X/Twitter URLs
+        x_twitter_domains = ['twitter.com', 'x.com', 'www.twitter.com', 'www.x.com']
+        url_lower = submission.url.lower()
+        
+        # Check if URL contains X/Twitter domain and a status/tweet ID pattern
+        for domain in x_twitter_domains:
+            if domain in url_lower and ('/status/' in url_lower or '/i/web/status/' in url_lower):
+                return True
+        
+        return False
+    
     def validate_submission(self, submission: Submission) -> bool:
         """Validate if submission should be processed"""
         # Skip if too old (older than 1 hour)
