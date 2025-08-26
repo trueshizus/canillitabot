@@ -1,0 +1,66 @@
+name: Deploy CanillitaBot to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H 134.122.48.11 >> ~/.ssh/known_hosts
+        
+    - name: Deploy to server
+      run: |
+        ssh root@134.122.48.11 << 'EOF'
+          cd canillitabot
+          
+          # Pull latest changes
+          echo "🔄 Pulling latest changes..."
+          git fetch origin
+          git reset --hard origin/main
+          
+          # Show current commit
+          echo "📝 Current commit:"
+          git log --oneline -n 1
+          
+          # Rebuild and restart containers
+          echo "🐳 Rebuilding Docker containers..."
+          docker compose down
+          docker compose build --no-cache
+          docker compose up -d
+          
+          # Wait for health check
+          echo "🏥 Waiting for health check..."
+          sleep 30
+          
+          # Verify deployment
+          echo "✅ Deployment status:"
+          docker compose ps
+          docker compose logs --tail=5 canillitabot
+          
+          echo "🚀 Deployment completed successfully!"
+        EOF
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          exit 1
+        fi
