@@ -10,6 +10,7 @@ from x_extractor import XContentExtractor
 from queue_manager import QueueManager
 from monitoring import initialize_monitoring
 from utils import PerformanceLogger, metrics, error_tracker
+from health_server import HealthServer, HealthChecker
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +61,18 @@ class BotManager:
         # Initialize monitoring system
         self.monitor = initialize_monitoring(self.config)
         
+        # Initialize health checking
+        self.health_checker = HealthChecker(bot_manager=self, database=self.database)
+        self.health_server = HealthServer(port=8080, health_checker=self.health_checker)
+        
         self.running = False
         self._setup_signal_handlers()
     
     def _setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown"""
         def signal_handler(signum, frame):
-            logger.info(f"Received signal {signum}, shutting down gracefully...")
-            self.stop()
+            logger.info(f"Received signal {signum} ({'SIGINT' if signum == 2 else 'SIGTERM'}), initiating graceful shutdown...")
+            self.shutdown_gracefully()
         
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
@@ -78,22 +83,58 @@ class BotManager:
         logger.info(f"Monitoring subreddits: {', '.join(self.config.subreddits)}")
         logger.info(f"Check interval: {self.config.check_interval} seconds")
         
+        # Start health server
+        try:
+            self.health_server.start()
+            logger.info(f"Health check available at http://localhost:8080/health")
+        except Exception as e:
+            logger.warning(f"Could not start health server: {e}")
+        
         self.running = True
         
         try:
+            logger.info("Bot startup complete, entering main processing loop")
             while self.running:
+                # Update health checker activity
+                self.health_checker.update_activity()
+                
                 self._process_cycle()
-                time.sleep(self.config.check_interval)
+                
+                # Sleep with periodic wake-ups to check for shutdown
+                self._interruptible_sleep(self.config.check_interval)
                 
         except Exception as e:
             logger.error(f"Unexpected error in main loop: {e}")
+            error_tracker.track_error(e, {'operation': 'main_loop'})
             raise
         finally:
             self._cleanup()
     
     def stop(self):
-        """Stop the bot"""
+        """Stop the bot immediately"""
         self.running = False
+    
+    def shutdown_gracefully(self):
+        """Gracefully shutdown the bot with proper cleanup"""
+        logger.info("Initiating graceful shutdown...")
+        
+        # Mark health checker as shutting down
+        self.health_checker.mark_shutdown()
+        
+        # Stop accepting new work
+        self.running = False
+        
+        # Allow current cycle to complete naturally
+        logger.info("Waiting for current processing cycle to complete...")
+    
+    def _interruptible_sleep(self, duration: int):
+        """Sleep that can be interrupted for faster shutdown"""
+        sleep_interval = min(1, duration)  # Sleep in 1-second intervals
+        total_slept = 0
+        
+        while total_slept < duration and self.running:
+            time.sleep(sleep_interval)
+            total_slept += sleep_interval
     
     def _process_cycle(self):
         """Process one cycle of checking subreddits"""
@@ -489,13 +530,19 @@ class BotManager:
     
     def _cleanup(self):
         """Cleanup resources on shutdown"""
-        logger.info("Cleaning up resources")
-        try:
-            if hasattr(self, 'database'):
-                self.database.close()
-            if hasattr(self, 'queue_manager') and self.queue_manager:
-                self.queue_manager.close()
-        except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
+        logger.info("Cleaning up resources...")
         
-        logger.info("CanillitaBot stopped")
+        cleanup_tasks = [
+            ('health_server', lambda: self.health_server.stop() if self.health_server else None),
+            ('database', lambda: self.database.close() if hasattr(self, 'database') else None),
+            ('queue_manager', lambda: self.queue_manager.close() if hasattr(self, 'queue_manager') and self.queue_manager else None)
+        ]
+        
+        for name, cleanup_func in cleanup_tasks:
+            try:
+                cleanup_func()
+                logger.debug(f"✓ Cleaned up {name}")
+            except Exception as e:
+                logger.error(f"Error cleaning up {name}: {e}")
+        
+        logger.info("CanillitaBot shutdown complete")
