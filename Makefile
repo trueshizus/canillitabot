@@ -82,6 +82,11 @@ stop:
 	@docker compose down
 	@echo "Bot stopped."
 
+reboot:
+	@echo "Rebooting bot..."
+	@docker compose restart
+	@echo "Bot rebooted."
+
 restart:
 	@echo "Restarting bot..."
 	@docker compose down && docker compose up -d --build

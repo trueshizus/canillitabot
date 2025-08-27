@@ -36,11 +36,12 @@ services:
 
   canillitabot:
     <<: *canillitabot-base
+    command: tail -f /dev/null
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.path.insert(0, '/app/src'); from database import Database; from config import Config; db = Database(Config()); print('OK')"]
+      test: ["CMD", "python", "-c", "from src.core.database import Database; from src.core.config import Config; db = Database(Config()); print('OK')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -48,7 +49,7 @@ services:
 
   canillitabot-worker:
     <<: *canillitabot-base
-    command: ["python", "src/worker.py"]
+    command: ["python", "src/tasks/main_worker.py"]
     depends_on:
       redis:
         condition: service_healthy
@@ -63,7 +64,7 @@ services:
 
   dashboard:
     <<: *canillitabot-base
-    command: ["python", "src/dashboard.py", "--host", "0.0.0.0", "--port", "5000"]
+    command: ["python", "src/services/dashboard.py", "--host", "0.0.0.0", "--port", "5000"]
     ports:
       - "9000:5000"
     depends_on:

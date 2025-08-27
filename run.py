@@ -11,8 +11,8 @@ from pathlib import Path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from bot import BotManager
-from utils import setup_logging
+from src.core.bot import BotManager
+from src.shared.utils import setup_logging
 
 def main():
     """Main entry point"""

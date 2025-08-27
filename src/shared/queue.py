@@ -56,7 +56,7 @@ class QueueManager:
         
         try:
             job = self.queues['posts'].enqueue(
-                'queue_workers.process_discovered_post',
+                'queue_handlers.process_discovered_post',
                 subreddit,
                 submission_data,
                 job_timeout='5m',
@@ -77,7 +77,7 @@ class QueueManager:
         
         try:
             job = self.queues['articles'].enqueue(
-                'queue_workers.process_article',
+                'queue_handlers.process_article',
                 post_id,
                 url,
                 submission_data,
@@ -99,7 +99,7 @@ class QueueManager:
         
         try:
             job = self.queues['youtube'].enqueue(
-                'queue_workers.process_youtube_video',
+                'queue_handlers.process_youtube_video',
                 post_id,
                 url,
                 submission_data,
@@ -121,7 +121,7 @@ class QueueManager:
         
         try:
             job = self.queues['twitter'].enqueue(
-                'queue_workers.process_twitter_post',
+                'queue_handlers.process_twitter_post',
                 post_id,
                 url,
                 submission_data,
@@ -144,7 +144,7 @@ class QueueManager:
         try:
             job = self.queues['retry'].enqueue_in(
                 timedelta(seconds=delay_seconds),
-                'queue_workers.retry_failed_job',
+                'queue_handlers.retry_failed_job',
                 original_job_data,
                 job_timeout='10m'
             )

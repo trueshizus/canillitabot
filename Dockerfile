@@ -60,8 +60,7 @@ ENV NLTK_DATA="/home/canillitabot/nltk_data"
 USER canillitabot
 
 # Health check
-HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
-    CMD python -c "from database import Database; from config import Config; db = Database(Config()); print('OK')" || exit 1
+HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 CMD python -c "from src.core.database import Database; from src.core.config import Config; db = Database(Config()); print('OK')" || exit 1
 
 # Default command
 CMD ["python", "run.py"]
