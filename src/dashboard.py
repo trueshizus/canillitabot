@@ -27,7 +27,7 @@ class CanillitaDashboard:
     """Web dashboard for monitoring CanillitaBot"""
     
     def __init__(self, host='0.0.0.0', port=5000, debug=False):
-        self.app = Flask(__name__, template_folder='../templates', static_folder='../static')
+        self.app = Flask(__name__, template_folder='templates', static_folder='static')
         self.host = host
         self.port = port
         self.debug = debug
