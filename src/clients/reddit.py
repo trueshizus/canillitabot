@@ -1,8 +1,8 @@
 import logging
 from typing import Iterator, List, Dict
 from praw.models import Submission
-from config import Config
-from reddit import RedditConnection, PostMonitor, CommentManager, CommentAnalytics
+from core.config import Config
+from clients.internal import RedditConnection, PostMonitor, CommentManager, CommentAnalytics
 
 logger = logging.getLogger(__name__)
 

@@ -12,11 +12,12 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-# Add src directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# Add src directory to Python path
+src_path = Path(__file__).parent.parent / "src"
+sys.path.insert(0, str(src_path))
 
-from config import Config
-from reddit_client import RedditClient
+from core.config import Config
+from clients.reddit import RedditClient
 
 def get_comments(limit=25, subreddit=None, format_output='json'):
     """Get recent CanillitaBot comments"""

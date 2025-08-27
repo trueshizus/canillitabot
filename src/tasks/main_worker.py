@@ -18,8 +18,8 @@ sys.path.insert(0, str(src_path))
 
 from rq import Worker, Connection
 import redis
-from config import Config
-from utils import setup_logging
+from core.config import Config
+from shared.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 

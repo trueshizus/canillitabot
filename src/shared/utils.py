@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any, Optional
 from functools import wraps
-from config import Config
+from core.config import Config
 
 class StructuredLogFormatter(logging.Formatter):
     """Custom formatter that outputs structured JSON logs"""

@@ -15,9 +15,10 @@ from unittest.mock import Mock, patch
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from config import Config
-from article_extractor import ArticleExtractor
-from reddit_client import RedditClient
+from core.config import Config
+from extractors.article import ArticleExtractor
+# Note: RedditClient is imported within the TestRedditClient class to avoid circular dependencies
+# during initialization, but we could import it here if we restructured the test client.
 
 def print_separator(title):
     print(f"\n{'='*60}")
@@ -54,8 +55,7 @@ def test_extraction(url, show_full=False):
             def format_comment(self, article_content, article_url, article_title=""):
                 """Use the actual formatting logic from the refactored RedditClient"""
                 # Import the refactored components
-                from reddit_client import RedditClient
-                from unittest.mock import Mock, patch
+                from clients.reddit import RedditClient
                 
                 # Mock the PRAW Reddit instance to avoid authentication
                 with patch('praw.Reddit') as mock_praw:

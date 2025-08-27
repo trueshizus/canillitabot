@@ -13,9 +13,13 @@ import re
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from config import Config
-from reddit_client import RedditClient
-from queue_manager import QueueManager
+# Add src directory to Python path
+src_path = Path(__file__).parent.parent / "src"
+sys.path.insert(0, str(src_path))
+
+from core.config import Config
+from clients.reddit import RedditClient
+from shared.queue import QueueManager
 
 def enqueue_post(url: str):
     """Fetches a Reddit post and enqueues it for processing."""

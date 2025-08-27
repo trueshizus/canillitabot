@@ -10,8 +10,8 @@ from pathlib import Path
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import Config
-from article_extractor import ArticleExtractor
+from src.core.config import Config
+from src.extractors.article import ArticleExtractor
 
 def test_infobae_extraction():
     """Test Infobae article extraction with provider-specific configuration"""

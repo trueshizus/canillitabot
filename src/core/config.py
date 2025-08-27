@@ -135,7 +135,7 @@ class EnvironmentConfig:
     
     def __init__(self, environment: str = None):
         self.environment = environment or self._detect_environment()
-        self.project_root = Path(__file__).parent.parent
+        self.project_root = Path(__file__).parent.parent.parent
         self._load_env_file()
     
     def _detect_environment(self) -> str:

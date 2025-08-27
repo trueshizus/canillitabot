@@ -12,9 +12,9 @@ from unittest.mock import MagicMock
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dotenv import load_dotenv
-from config import Config
-from reddit.monitor import PostMonitor
-from gemini_client import GeminiClient
+from src.core.config import Config
+from src.clients.internal.monitor import PostMonitor
+from src.clients.gemini import GeminiClient
 import logging
 
 # Setup logging

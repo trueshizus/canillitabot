@@ -2,7 +2,7 @@ import time
 import logging
 from typing import Iterator, List
 from praw.models import Submission
-from config import Config
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 

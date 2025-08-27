@@ -11,8 +11,8 @@ from pathlib import Path
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from config import Config
-from providers.infobae import InfobaeProvider
+from src.core.config import Config
+from src.extractors.providers.infobae import InfobaeProvider
 
 
 class TestInfobaeProvider(unittest.TestCase):

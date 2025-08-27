@@ -4,7 +4,7 @@ import re
 from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup, Tag
 from newspaper import Article
-from providers.base import BaseProvider
+from extractors.providers.base import BaseProvider
 
 logger = logging.getLogger(__name__)
 

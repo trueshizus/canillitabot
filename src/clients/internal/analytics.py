@@ -2,7 +2,7 @@ import time
 import logging
 from typing import List, Dict
 from collections import defaultdict
-from config import Config
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 

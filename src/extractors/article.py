@@ -1,8 +1,8 @@
 import logging
 import time
 from typing import Optional, Dict, Any
-from config import Config
-from providers import get_provider
+from core.config import Config
+from extractors.providers import get_provider
 
 logger = logging.getLogger(__name__)
 

@@ -14,12 +14,12 @@ import json
 src_path = Path(__file__).parent
 sys.path.insert(0, str(src_path))
 
-from config import Config
-from database import Database
-from reddit_client import RedditClient
-from article_extractor import ArticleExtractor
-from gemini_client import GeminiClient
-from x_extractor import XContentExtractor
+from core.config import Config
+from core.database import Database
+from clients.reddit import RedditClient
+from extractors.article import ArticleExtractor
+from clients.gemini import GeminiClient
+from extractors.x import XContentExtractor
 
 # Initialize shared components
 config = Config()

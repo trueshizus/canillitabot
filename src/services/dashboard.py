@@ -15,11 +15,11 @@ from typing import Dict, List, Any, Optional
 src_path = Path(__file__).parent
 sys.path.insert(0, str(src_path))
 
-from config import Config
-from database import Database
-from queue_manager import QueueManager
-from monitoring import get_monitor
-from utils import metrics, error_tracker
+from core.config import Config
+from core.database import Database
+from shared.queue import QueueManager
+from core.monitoring import get_monitor
+from shared.utils import metrics, error_tracker
 
 logger = logging.getLogger(__name__)
 

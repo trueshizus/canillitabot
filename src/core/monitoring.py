@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, deque
 
-from utils import metrics, error_tracker, PerformanceLogger
-from config import Config
+from shared.utils import metrics, error_tracker, PerformanceLogger
+from core.config import Config
 
 logger = logging.getLogger(__name__)
 

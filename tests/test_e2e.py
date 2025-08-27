@@ -8,7 +8,7 @@ sys.path.insert(0, str(src_path))
 import unittest
 from unittest.mock import MagicMock, patch
 import pytest
-from src.bot import BotManager
+from src.core.bot import BotManager
 
 @pytest.fixture
 def bot_manager():
