@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup, Tag
 from newspaper import Article
 from extractors.providers.base import BaseProvider
+from extractors.formatters import process_article_structure, final_content_cleanup
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class DefaultProvider(BaseProvider):
         
         include_elements = provider_config.get('content', {}).get('include_elements', ['p', 'h2', 'h3', 'h4', 'h5', 'h6'])
         
-        return self._process_article_structure(article_container, include_elements)
+        return process_article_structure(article_container, include_elements)
 
     def get_authors(self, soup: BeautifulSoup, provider_config: Dict[str, Any]) -> List[str]:
         author_selectors = provider_config.get('author', {}).get('selectors', ['.author', '.autor'])
@@ -126,7 +127,7 @@ class DefaultProvider(BaseProvider):
             if not title or not structured_content:
                 return None
             
-            cleaned_content = self._final_content_cleanup(structured_content, provider_config)
+            cleaned_content = final_content_cleanup(structured_content, provider_config)
             
             return {
                 'title': title,
@@ -155,7 +156,7 @@ class DefaultProvider(BaseProvider):
             
             enhanced_content = self._enhance_newspaper_content(article.text, soup)
             
-            cleaned_content = self._final_content_cleanup(enhanced_content, provider_config)
+            cleaned_content = final_content_cleanup(enhanced_content, provider_config)
             
             cleaned_title = self._clean_title(article.title, provider_config) if article.title else ""
             
@@ -184,85 +185,6 @@ class DefaultProvider(BaseProvider):
             for element in soup.find_all(class_=re.compile(class_pattern, re.I)):
                 element.decompose()
 
-    def _process_article_structure(self, container: Tag, include_elements: List[str]) -> str:
-        structured_parts = []
-        
-        selector = ', '.join(include_elements)
-        elements = container.select(selector)
-        
-        for element in elements:
-            if not self._is_meaningful_element(element):
-                continue
-                
-            text = element.get_text().strip()
-            if not text:
-                continue
-            
-            if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                level = int(element.name[1])
-                if level == 1:
-                    structured_parts.append(f"# {text}\n")
-                elif level == 2:
-                    structured_parts.append(f"## {text}\n")
-                elif level == 3:
-                    structured_parts.append(f"### {text}\n")
-                else:
-                    structured_parts.append(f"**{text}**\n")
-            
-            elif element.name == 'p':
-                structured_parts.append(f"{text}\n")
-            
-            elif element.name in ['ul', 'ol']:
-                list_items = []
-                for li in element.find_all('li'):
-                    li_text = li.get_text().strip()
-                    if li_text:
-                        if element.name == 'ul':
-                            list_items.append(f"• {li_text}")
-                        else:
-                            list_items.append(f"{len(list_items) + 1}. {li_text}")
-                
-                if list_items:
-                    structured_parts.append('\n'.join(list_items) + '\n')
-            
-            elif element.name == 'blockquote':
-                structured_parts.append(f"> {text}\n")
-        
-        content = '\n'.join(structured_parts).strip()
-        content = re.sub(r'\n{3,}', '\n\n', content)
-        content = re.sub(r'[ \t]+', ' ', content)
-        content = content.strip()
-        
-        max_length = provider_config.get('content', {}).get('max_length', self.config.max_article_length)
-        if len(content) > max_length:
-            content = content[:max_length]
-            last_sentence = max(content.rfind('.'), content.rfind('\n\n'))
-            if last_sentence > max_length * 0.8:
-                content = content[:last_sentence + 1]
-        
-        return content
-
-    def _is_meaningful_element(self, element: Tag) -> bool:
-        text = element.get_text().strip()
-        
-        if not text or len(text) < 5:
-            return False
-        
-        unwanted_patterns = [
-            r'^\s*compartir\s*$',
-            r'^\s*seguir\s*$',
-            r'^\s*tags?\s*[:.]',
-            r'^\s*autor\s*[:.]',
-            r'^\s*fecha\s*[:.]',
-            r'^\s*fuente\s*[:.]',
-        ]
-        
-        for pattern in unwanted_patterns:
-            if re.match(pattern, text.lower()):
-                return False
-        
-        return True
-
     def _enhance_newspaper_content(self, newspaper_text: str, soup: BeautifulSoup) -> str:
         if not newspaper_text:
             return ""
@@ -279,7 +201,7 @@ class DefaultProvider(BaseProvider):
                     f"## {heading}"
                 )
         
-        return self._final_content_cleanup(enhanced_text, self.config.get_default_provider_config())
+        return final_content_cleanup(enhanced_text, self.config.get_default_provider_config())
 
     def _clean_title(self, title: str, provider_config: Dict[str, Any]) -> str:
         cleanup_patterns = provider_config.get('title', {}).get('cleanup_patterns', [])
@@ -288,28 +210,6 @@ class DefaultProvider(BaseProvider):
             title = re.sub(pattern, '', title, flags=re.I)
         
         return title.strip()
-
-    def _final_content_cleanup(self, content: str, provider_config: Dict[str, Any]) -> str:
-        if not content:
-            return ""
-        
-        cleanup_patterns = provider_config.get('cleanup_patterns', [])
-        
-        for pattern in cleanup_patterns:
-            content = re.sub(pattern, '', content, flags=re.I | re.MULTILINE)
-        
-        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
-        content = re.sub(r'[ \t]+', ' ', content)
-        content = content.strip()
-        
-        max_length = provider_config.get('content', {}).get('max_length', self.config.max_article_length)
-        if len(content) > max_length:
-            content = content[:max_length]
-            last_sentence = max(content.rfind('.'), content.rfind('\n\n'))
-            if last_sentence > max_length * 0.8:
-                content = content[:last_sentence + 1]
-        
-        return content
 
     def is_valid_article(self, article_data: Dict[str, Any], provider_config: Dict[str, Any]) -> bool:
         if not article_data:
