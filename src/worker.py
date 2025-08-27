@@ -8,6 +8,8 @@ import sys
 import logging
 from pathlib import Path
 import signal
+import time
+import os
 from typing import List
 
 # Add src directory to Python path
@@ -42,16 +44,22 @@ class CanillitaWorker:
         logger.info(f"Worker initialized for queues: {', '.join(self.queue_names)}")
     
     def _connect_redis(self):
-        """Connect to Redis server"""
-        try:
-            redis_url = self.config.queue.redis_url
-            conn = redis.from_url(redis_url)
-            conn.ping()  # Test connection
-            logger.info(f"Connected to Redis at {redis_url}")
-            return conn
-        except Exception as e:
-            logger.error(f"Failed to connect to Redis: {e}")
-            sys.exit(1)
+        """Connect to Redis server with retry logic"""
+        redis_url = self.config.queue.redis_url
+        
+        for attempt in range(5):
+            try:
+                conn = redis.from_url(redis_url)
+                conn.ping()  # Test connection
+                logger.info(f"Connected to Redis at {redis_url}")
+                return conn
+            except redis.exceptions.ConnectionError as e:
+                logger.warning(f"Redis connection failed (attempt {attempt + 1}/5): {e}")
+                if attempt < 4:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+        
+        logger.error("Failed to connect to Redis after multiple attempts.")
+        sys.exit(1)
     
     def _setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown"""
@@ -69,7 +77,7 @@ class CanillitaWorker:
                 worker = Worker(
                     self.queue_names,
                     connection=self.redis_conn,
-                    name=f"canillita-worker-{sys.argv[0]}"
+                    name=f"canillita-worker-{os.getpid()}"
                 )
                 
                 logger.info("Worker started. Waiting for jobs...")
