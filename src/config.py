@@ -519,6 +519,10 @@ class Config:
     @property
     def blocked_domains(self) -> List[str]:
         return self.domains_config.get('blocked_domains', [])
+
+    @property
+    def max_retries(self) -> int:
+        return self.extraction.max_retries
     
     # Additional legacy compatibility properties
     @property

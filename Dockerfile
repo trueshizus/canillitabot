@@ -1,7 +1,7 @@
 # Multi-stage build for optimized production images
 
 # Build stage - includes build dependencies
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 RUN python -c "import nltk; nltk.download('punkt', download_dir='/tmp/nltk_data')"
 
 # Production stage - minimal runtime image
-FROM python:3.11-slim as production
+FROM python:3.11-slim AS production
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -52,7 +52,7 @@ COPY run.py ./
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV PATH="/home/canillitabot/.local/bin:$PATH"
 ENV NLTK_DATA="/home/canillitabot/nltk_data"
 
@@ -67,7 +67,7 @@ HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
 CMD ["python", "run.py"]
 
 # Development stage - includes all development tools
-FROM builder as development
+FROM builder AS development
 
 # Install development dependencies
 RUN pip install --no-cache-dir \
@@ -92,7 +92,7 @@ COPY . .
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV NLTK_DATA="/tmp/nltk_data"
 
 # Switch to non-root user

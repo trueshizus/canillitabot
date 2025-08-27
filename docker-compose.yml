@@ -1,3 +1,21 @@
+
+x-canillitabot-base: &canillitabot-base
+  build:
+    context: .
+    cache_from:
+      - canillitabot:latest
+  image: canillitabot:latest
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+  networks:
+    - canillitabot-network
+  volumes:
+    - data:/app/data
+    - logs:/app/logs
+    - ./config:/app/config:ro
+
 services:
   redis:
     image: redis:7-alpine
@@ -15,24 +33,10 @@ services:
       retries: 3
 
   canillitabot:
-    build: 
-      context: .
-      cache_from:
-        - canillitabot:latest
-    image: canillitabot:latest
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
+    <<: *canillitabot-base
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
-    networks:
-      - canillitabot-network
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.path.insert(0, '/app/src'); from database import Database; from config import Config; db = Database(Config()); print('OK')"]
       interval: 30s
@@ -41,27 +45,13 @@ services:
       start_period: 20s
 
   canillitabot-worker:
-    build: 
-      context: .
-      cache_from:
-        - canillitabot:latest
-    image: canillitabot:latest
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
+    <<: *canillitabot-base
     command: ["python", "src/worker.py"]
     depends_on:
       redis:
         condition: service_healthy
       canillitabot:
         condition: service_started
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
-    networks:
-      - canillitabot-network
     healthcheck:
       test: ["CMD", "python", "-c", "import redis; r = redis.from_url('redis://redis:6379/0'); r.ping(); print('OK')"]
       interval: 30s
@@ -70,26 +60,12 @@ services:
       start_period: 30s
 
   dashboard:
-    build: 
-      context: .
-      cache_from:
-        - canillitabot:latest
-    image: canillitabot:latest
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
+    <<: *canillitabot-base
     command: ["python", "src/dashboard.py", "--host", "0.0.0.0", "--port", "5000"]
     ports:
-      - "5000:5000"
+      - "9000:5000"
     depends_on:
       - canillitabot
-    volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./config:/app/config:ro
-    networks:
-      - canillitabot-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
@@ -103,3 +79,5 @@ networks:
 
 volumes:
   redis_data:
+  data:
+  logs:

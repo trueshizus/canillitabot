@@ -1,15 +1,23 @@
 # CanillitaBot Makefile
 # Provides standard commands for development and deployment workflow
 
-.PHONY: help start stop restart test build deploy clean logs status health setup
+.PHONY: help start stop restart test build deploy clean logs status health setup down
 
 # Default target
 help:
 	@echo "CanillitaBot Development Commands:"
 	@echo ""
+	@echo "Docker Compose:"
+	@echo "  make down      - Stop and remove all containers"
+	@echo ""
 	@echo "Development:"
 	@echo "  make setup     - Set up development environment"
 	@echo "  make start     - Start the bot locally or with Docker Compose"
+# Docker Compose
+down:
+	@echo "Stopping and removing all containers..."
+	@docker compose down
+	@echo "All containers stopped and removed."
 	@echo "  make stop      - Stop the bot"
 	@echo "  make restart   - Restart the bot"
 	@echo "  make logs      - View bot logs"
@@ -81,7 +89,7 @@ restart:
 
 # Logs and status
 logs:
-	@docker compose logs -f canillitabot
+	@docker compose logs canillitabot
 
 status:
 	@echo "Docker container status:"
@@ -128,14 +136,9 @@ lint:
 
 # Building
 build:
-	@echo "Building Docker image..."
-	@docker build -t canillitabot:latest .
-	@echo "Build complete: canillitabot:latest"
-
-build-prod:
 	@echo "Building optimized production image..."
-	@docker build -t canillitabot:prod --target production .
-	@echo "Production build complete: canillitabot:prod"
+	@docker build --pull -t canillitabot:latest --target production .
+	@echo "Production build complete: canillitabot:latest"
 
 # Deployment
 deploy:
@@ -143,13 +146,14 @@ deploy:
 	@if [ -z "$(SERVER)" ]; then \
 		echo "Error: SERVER variable not set. Usage: make deploy SERVER=your-droplet-ip"; \
 		exit 1; \
-	fi
+	fí
 	@echo "Building and pushing to $(SERVER)..."
 	@docker save canillitabot:latest | ssh root@$(SERVER) 'docker load'
 	@scp docker-compose.yml root@$(SERVER):/opt/canillitabot/
 	@scp .env root@$(SERVER):/opt/canillitabot/
 	@ssh root@$(SERVER) 'cd /opt/canillitabot && docker compose down && docker compose up -d'
 	@echo "Deployment to $(SERVER) complete!"
+
 
 deploy-staging:
 	@echo "Deploying to staging environment..."
@@ -174,7 +178,7 @@ preview-article:
 		echo "Usage: make preview-article URL='https://example.com/article'"; \
 	else \
 		./venv/bin/python tools/article_preview.py "$(URL)"; \
-	fi
+	fí
 
 comment-stats:
 	@echo "Recent bot comment activity:"
@@ -204,6 +208,7 @@ start-worker:
 start-dashboard:
 	@echo "Starting web dashboard..."
 	@./venv/bin/python src/dashboard.py
+
 
 dashboard-url:
 	@echo "Dashboard URL: http://localhost:5000"

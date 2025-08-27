@@ -21,7 +21,7 @@ class QueueManager:
     def _connect(self):
         """Connect to Redis server"""
         try:
-            redis_url = getattr(self.config, 'redis_url', 'redis://localhost:6379/0')
+            redis_url = self.config.queue.redis_url
             self.redis_conn = redis.from_url(redis_url)
             
             # Test connection

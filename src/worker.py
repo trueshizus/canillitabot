@@ -44,7 +44,7 @@ class CanillitaWorker:
     def _connect_redis(self):
         """Connect to Redis server"""
         try:
-            redis_url = getattr(self.config, 'redis_url', 'redis://localhost:6379/0')
+            redis_url = self.config.queue.redis_url
             conn = redis.from_url(redis_url)
             conn.ping()  # Test connection
             logger.info(f"Connected to Redis at {redis_url}")
