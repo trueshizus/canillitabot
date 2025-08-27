@@ -1,6 +1,7 @@
 import logging
 import redis
 from rq import Queue, Worker, Connection
+from rq.job import Retry
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import json
@@ -59,7 +60,7 @@ class QueueManager:
                 subreddit,
                 submission_data,
                 job_timeout='5m',
-                retry=True
+                retry=Retry(max=3, interval=[10, 30, 60])
             )
             
             logger.debug(f"Enqueued post {submission_data.get('id')} for processing")
@@ -81,7 +82,7 @@ class QueueManager:
                 url,
                 submission_data,
                 job_timeout='10m',
-                retry=True
+                retry=Retry(max=3, interval=[60, 180, 360])
             )
             
             logger.debug(f"Enqueued article processing for {url}")
@@ -103,7 +104,7 @@ class QueueManager:
                 url,
                 submission_data,
                 job_timeout='15m',
-                retry=True
+                retry=Retry(max=2, interval=[180, 600])
             )
             
             logger.debug(f"Enqueued YouTube processing for {url}")
@@ -125,7 +126,7 @@ class QueueManager:
                 url,
                 submission_data,
                 job_timeout='5m',
-                retry=True
+                retry=Retry(max=3, interval=[10, 30, 60])
             )
             
             logger.debug(f"Enqueued Twitter processing for {url}")
