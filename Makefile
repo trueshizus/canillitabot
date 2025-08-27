@@ -63,7 +63,7 @@ start:
 		./venv/bin/python src/bot.py; \
 	else \
 		echo "Starting bot with Docker Compose..."; \
-		docker compose up -d; \
+		docker compose up --build --force-recreate --remove-orphans -d; \
 		echo "Bot started. Use 'make logs' to view output."; \
 	fi
 
@@ -137,7 +137,7 @@ lint:
 # Building
 build:
 	@echo "Building optimized production image..."
-	@docker build --pull -t canillitabot:latest --target production .
+	@docker build --no-cache --pull -t canillitabot:latest --target production .
 	@echo "Production build complete: canillitabot:latest"
 
 # Deployment
