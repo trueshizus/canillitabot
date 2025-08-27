@@ -58,6 +58,7 @@ class ExtractionConfig:
     timeout: int = 15
     max_retries: int = 3
     user_agent: str = "CanillitaBot/1.0 (News Bot)"
+    extraction_user_agent: str = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
     max_article_length: int = 50000
     min_article_length: int = 200
 
@@ -450,6 +451,12 @@ class Config:
                 'cleanup_days': self.database.cleanup_days
             }
         }
+
+    def _extract_domain(self, url: str) -> str:
+        """Extracts the domain from a URL."""
+        if not url.startswith(('http://', 'https://')):
+            url = 'http://' + url
+        return urlparse(url).netloc.replace('www.', '')
     
     # Legacy compatibility properties
     @property
@@ -523,6 +530,26 @@ class Config:
     @property
     def max_retries(self) -> int:
         return self.extraction.max_retries
+    
+    @property
+    def extraction_user_agent(self) -> str:
+        return self.extraction.extraction_user_agent
+
+    @property
+    def extraction_timeout(self) -> int:
+        return self.extraction.timeout
+
+    @property
+    def max_article_length(self) -> int:
+        return self.extraction.max_article_length
+
+    @property
+    def min_article_length(self) -> int:
+        return self.extraction.min_article_length
+
+    @property
+    def max_comment_length(self) -> int:
+        return self.bot.max_comment_length
     
     # Additional legacy compatibility properties
     @property
