@@ -52,7 +52,7 @@ COPY run.py ./
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
+ENV PYTHONPATH=/app/src:/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV PATH="/home/canillitabot/.local/bin:$PATH"
 ENV NLTK_DATA="/home/canillitabot/nltk_data"
 
@@ -61,7 +61,7 @@ USER canillitabot
 
 # Health check
 HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
-    CMD python -c "import sys; sys.path.insert(0, '/app/src'); from database import Database; from config import Config; db = Database(Config()); print('OK')" || exit 1
+    CMD python -c "from database import Database; from config import Config; db = Database(Config()); print('OK')" || exit 1
 
 # Default command
 CMD ["python", "run.py"]
@@ -79,6 +79,8 @@ RUN pip install --no-cache-dir \
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash canillitabot
 
+
+
 # Set working directory
 WORKDIR /app
 
@@ -92,7 +94,7 @@ COPY . .
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
+ENV PYTHONPATH=/app/src:/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV NLTK_DATA="/tmp/nltk_data"
 
 # Switch to non-root user

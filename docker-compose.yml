@@ -2,6 +2,7 @@
 x-canillitabot-base: &canillitabot-base
   build:
     context: .
+    target: production
     cache_from:
       - canillitabot:latest
   image: canillitabot:latest
@@ -12,6 +13,7 @@ x-canillitabot-base: &canillitabot-base
   networks:
     - canillitabot-network
   volumes:
+    - ./src:/app/src
     - data:/app/data
     - logs:/app/logs
     - ./config:/app/config:ro
@@ -66,6 +68,9 @@ services:
       - "9000:5000"
     depends_on:
       - canillitabot
+    volumes:
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
