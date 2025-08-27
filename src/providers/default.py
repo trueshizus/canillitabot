@@ -19,8 +19,8 @@ class DefaultProvider(BaseProvider):
     def extract_article(self, url: str) -> Optional[Dict[str, Any]]:
         """Extract article content from URL with provider-specific formatting"""
         try:
-            provider_config = self.config.get_provider_config(url)
             domain = self.config._extract_domain(url)
+            provider_config = self.config.get_provider_config(domain)
             
             logger.info(f"Using provider '{provider_config.get('name', 'default')}' for domain '{domain}'")
             

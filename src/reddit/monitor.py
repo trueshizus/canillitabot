@@ -101,3 +101,11 @@ class PostMonitor:
     def get_monitored_subreddits(self) -> List[str]:
         """Get list of subreddits to monitor"""
         return self.config.subreddits
+
+    def get_submission_by_id(self, submission_id: str) -> Submission:
+        """Get a submission by its ID"""
+        try:
+            return self.reddit.submission(id=submission_id)
+        except Exception as e:
+            logger.error(f"Error fetching submission by ID {submission_id}: {e}")
+            return None

@@ -57,6 +57,10 @@ class RedditClient:
         """Get list of subreddits to monitor"""
         return self.monitor.get_monitored_subreddits()
     
+    def get_submission_by_id(self, submission_id: str) -> Submission:
+        """Get a submission by its ID"""
+        return self.monitor.get_submission_by_id(submission_id)
+    
     # Delegation methods for comment management
     def post_comment(self, submission: Submission, content: str) -> bool:
         """Post a comment on a submission (backwards compatibility)"""

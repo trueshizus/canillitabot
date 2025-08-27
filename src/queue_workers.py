@@ -62,6 +62,7 @@ def process_discovered_post(subreddit: str, submission_data: Dict[str, Any]) -> 
             return {"status": "skipped", "reason": "already_processed"}
         
         # Determine content type and route accordingly
+        # The URL in submission_data might have been extracted from a self-post
         if reddit_client.is_news_article_url(url):
             # Route to article processing queue
             from queue_manager import QueueManager
