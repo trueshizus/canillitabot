@@ -3,13 +3,16 @@ Processing cycle for the CanillitaBot.
 """
 
 import logging
-from core.bot import BotManager
+from typing import TYPE_CHECKING
 from shared.utils import PerformanceLogger, metrics, error_tracker
+
+if TYPE_CHECKING:
+    from core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 
 class ProcessingCycle:
-    def __init__(self, bot_manager: BotManager):
+    def __init__(self, bot_manager: 'BotManager'):
         self.bot_manager = bot_manager
         self.config = bot_manager.config
         self.reddit_client = bot_manager.reddit_client

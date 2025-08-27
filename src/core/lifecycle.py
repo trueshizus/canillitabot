@@ -5,12 +5,15 @@ Bot lifecycle management for CanillitaBot.
 import time
 import logging
 import signal
-from core.bot import BotManager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 
 class BotLifecycle:
-    def __init__(self, bot_manager: BotManager):
+    def __init__(self, bot_manager: 'BotManager'):
         self.bot_manager = bot_manager
         self.running = False
         self._setup_signal_handlers()

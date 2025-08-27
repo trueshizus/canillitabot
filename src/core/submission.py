@@ -3,14 +3,17 @@ Submission handling for the CanillitaBot.
 """
 
 import logging
+from typing import TYPE_CHECKING
 from praw.models import Submission
-from core.bot import BotManager
 from shared.utils import error_tracker
+
+if TYPE_CHECKING:
+    from core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 
 class SubmissionHandler:
-    def __init__(self, bot_manager: BotManager):
+    def __init__(self, bot_manager: 'BotManager'):
         self.bot_manager = bot_manager
         self.config = bot_manager.config
         self.database = bot_manager.database
