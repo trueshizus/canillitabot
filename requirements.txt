@@ -13,3 +13,4 @@ youtube-transcript-api
 redis==5.0.1
 rq==1.15.1
 flask==3.0.0
+pygments==2.16.1

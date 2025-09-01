@@ -19,6 +19,34 @@ body {
     padding: 20px;
 }
 
+.navigation {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.navigation a {
+    color: #3498db;
+    text-decoration: none;
+    margin-right: 15px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.navigation a:hover {
+    background-color: #ecf0f1;
+    text-decoration: none;
+}
+
+.navigation a:first-child {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
 .header {
     background: #fff;
     padding: 20px;

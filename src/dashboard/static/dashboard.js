@@ -26,14 +26,27 @@ function setupModal() {
     };
 }
 
-// Show post comment in modal
-function showComment(postId, title, comment) {
+// Show post comment or error details in modal
+function showComment(postId, title, comment, errorMessage = null) {
     const modal = document.getElementById('comment-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalComment = document.getElementById('modal-comment');
     
     modalTitle.textContent = title;
-    modalComment.textContent = comment || 'No se generó comentario para este post.';
+    
+    if (errorMessage) {
+        // Show error information
+        modalComment.innerHTML = `
+            <div style="color: #e74c3c; background: #fdf2f2; padding: 10px; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                <strong>❌ Error de procesamiento:</strong><br>
+                ${errorMessage}
+            </div>
+        `;
+    } else {
+        // Show comment or default message
+        modalComment.textContent = comment || 'No se generó comentario para este post.';
+    }
+    
     modal.style.display = 'block';
 }
 
@@ -77,7 +90,7 @@ function fetchNewPosts() {
     const originalText = button.innerHTML;
     
     button.disabled = true;
-    button.innerHTML = '⏳ Buscando posts...';
+    button.innerHTML = '⏳ Procesando posts...';
     
     fetch('/api/fetch-new-posts', {
         method: 'POST'
@@ -86,19 +99,46 @@ function fetchNewPosts() {
     .then(data => {
         if (data.success) {
             if (data.found_posts > 0) {
-                button.innerHTML = `✅ ${data.found_posts} posts nuevos encontrados`;
-                // Show a brief summary of what was found
-                console.log('New posts found:', data.posts);
-                // Refresh the posts list after a short delay to show if any got processed
+                // Show detailed processing results
+                const failedCount = data.processed_posts - data.successful_posts;
+                const processedText = data.processed_posts > 0 ? 
+                    `✅ Exitosos: ${data.successful_posts} | ❌ Fallidos: ${failedCount} (${data.success_rate})` :
+                    `✅ ${data.found_posts} posts encontrados (en cola)`;
+                    
+                button.innerHTML = processedText;
+                
+                // Log detailed results for debugging including errors
+                console.log('Processing results:', {
+                    found: data.found_posts,
+                    processed: data.processed_posts,
+                    successful: data.successful_posts,
+                    failed: failedCount,
+                    rate: data.success_rate,
+                    results: data.results
+                });
+                
+                // Log individual failures with details
+                if (data.results) {
+                    const failures = data.results.filter(r => !r.success);
+                    if (failures.length > 0) {
+                        console.group('❌ Processing Failures:');
+                        failures.forEach(failure => {
+                            console.error(`Post "${failure.title}": ${failure.error || 'Unknown error'}`);
+                        });
+                        console.groupEnd();
+                    }
+                }
+                
+                // Refresh the posts list after a short delay to show processed posts
                 setTimeout(() => {
                     loadPosts();
-                }, 2000);
+                }, 3000);
             } else {
                 button.innerHTML = '✅ No hay posts nuevos';
             }
         } else {
-            button.innerHTML = '❌ Error al buscar';
-            console.error('Error fetching posts:', data.error);
+            button.innerHTML = '❌ Error al procesar';
+            console.error('Error processing posts:', data.error);
         }
     })
     .catch(error => {
@@ -142,15 +182,22 @@ function loadPosts() {
                 const truncatedTitle = post.title.length > 80 ? 
                     post.title.substring(0, 80) + '...' : post.title;
                 
+                // Create error tooltip/title if there's an error message
+                const errorInfo = post.error_message ? 
+                    `title="Error: ${post.error_message.replace(/"/g, '&quot;')}"` : '';
+                
                 html += `
                     <tr>
                         <td>
                             <span class="post-title" 
-                                  onclick="showComment('${post.post_id}', '${post.title.replace(/'/g, "\\'")}', '${(post.comment_text || '').replace(/'/g, "\\'")}')">
+                                  onclick="showComment('${post.post_id}', '${post.title.replace(/'/g, "\\'")}', '${(post.comment_text || '').replace(/'/g, "\\'")}', '${(post.error_message || '').replace(/'/g, "\\'")}')">
                                 ${truncatedTitle}
                             </span>
                         </td>
-                        <td class="${statusClass}">${statusText}</td>
+                        <td class="${statusClass}" ${errorInfo}>
+                            ${statusText}
+                            ${post.error_message ? '<br><small style="color: #666;">' + post.error_message.substring(0, 50) + (post.error_message.length > 50 ? '...' : '') + '</small>' : ''}
+                        </td>
                         <td>${post.processed_at_readable || 'N/A'}</td>
                         <td>
                             <button class="retry-btn" 

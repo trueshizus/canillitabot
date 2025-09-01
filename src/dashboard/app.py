@@ -6,18 +6,84 @@ Provides a lightweight interface to view processed posts and retry functionality
 from flask import Flask, render_template, jsonify, request
 import logging
 import sys
+import json
+import html
 from datetime import datetime
 from pathlib import Path
+
+# Import Pygments for JSON syntax highlighting
+try:
+    from pygments import highlight
+    from pygments.lexers import JsonLexer
+    from pygments.formatters import HtmlFormatter
+    PYGMENTS_AVAILABLE = True
+except ImportError:
+    PYGMENTS_AVAILABLE = False
 
 # Add parent directories to Python path to access core modules
 current_path = Path(__file__).parent
 src_path = current_path.parent
+project_root = src_path.parent
 sys.path.insert(0, str(src_path))
+sys.path.insert(0, str(project_root))
 
-from core.config import Config
-from core.database import Database
+from src.core.config import Config
+from src.core.database import Database
+from src.clients.reddit import RedditClient
+from src.shared.queue import QueueManager
 
 logger = logging.getLogger(__name__)
+
+def format_log_line(log_line: str) -> dict:
+    """Format a single log line for display"""
+    try:
+        # Try to parse as JSON (structured logs)
+        parsed = json.loads(log_line.strip())
+        
+        if PYGMENTS_AVAILABLE:
+            # Pretty print JSON with syntax highlighting
+            pretty_json = json.dumps(parsed, indent=2, ensure_ascii=False)
+            lexer = JsonLexer()
+            formatter = HtmlFormatter(
+                style='github-dark',
+                noclasses=True,
+                cssclass='highlight',
+                linenos=False
+            )
+            highlighted = highlight(pretty_json, lexer, formatter)
+            
+            return {
+                'type': 'json',
+                'level': parsed.get('level', 'INFO'),
+                'timestamp': parsed.get('timestamp', ''),
+                'formatted': highlighted,
+                'raw': log_line.strip()
+            }
+        else:
+            # Fallback to manual JSON formatting
+            return {
+                'type': 'json',
+                'level': parsed.get('level', 'INFO'),
+                'timestamp': parsed.get('timestamp', ''),
+                'formatted': f'<pre class="json-log">{html.escape(json.dumps(parsed, indent=2))}</pre>',
+                'raw': log_line.strip()
+            }
+            
+    except (json.JSONDecodeError, ValueError):
+        # Handle plain text logs
+        level = 'INFO'
+        if ' ERROR ' in log_line or ' CRITICAL ' in log_line:
+            level = 'ERROR'
+        elif ' WARNING ' in log_line or ' WARN ' in log_line:
+            level = 'WARNING'
+        
+        return {
+            'type': 'text',
+            'level': level,
+            'timestamp': '',
+            'formatted': f'<pre class="text-log">{html.escape(log_line.strip())}</pre>',
+            'raw': log_line.strip()
+        }
 
 class CanillitaDashboard:
     """Web dashboard for monitoring CanillitaBot"""
@@ -33,11 +99,11 @@ class CanillitaDashboard:
         # Initialize components
         self.config = Config()
         self.database = Database(self.config)
+        self.reddit_client = RedditClient(self.config)
         
         # Initialize queue manager if available (needed for fetch new posts)
         self.queue_manager = None
         try:
-            from shared.queue import QueueManager
             if getattr(self.config, 'queue_enabled', False):
                 self.queue_manager = QueueManager(self.config)
                 if not self.queue_manager.is_available():
@@ -97,60 +163,147 @@ class CanillitaDashboard:
         
         @self.app.route('/api/fetch-new-posts', methods=['POST'])
         def api_fetch_new_posts():
-            """Fetch new posts from subreddit and return info about unprocessed ones"""
+            """Fetch new posts from subreddit and process them like the main bot"""
             try:
-                # Import Reddit client
-                from clients.reddit import RedditClient
-                
-                reddit_client = RedditClient(self.config)
-                
                 # Get the monitored subreddits from config
                 subreddits = getattr(self.config, 'subreddits', ['argentina'])
-                found_posts = 0
-                new_posts_info = []
+                total_found = 0
+                total_processed = 0
+                total_successful = 0
+                processing_results = []
                 
                 for subreddit_name in subreddits:
-                    logger.info(f"Fetching new posts from r/{subreddit_name}")
+                    logger.info(f"Fetching and processing new posts from r/{subreddit_name}")
                     
-                    # Get the last 10 posts from the subreddit
                     try:
-                        subreddit = reddit_client.reddit.subreddit(subreddit_name)
-                        posts = list(subreddit.new(limit=10))
+                        # Get new posts using the same method as the main bot
+                        posts = list(self.reddit_client.get_new_posts(
+                            subreddit_name, 
+                            limit=getattr(self.config, 'max_posts_per_check', 10)
+                        ))
                         
-                        for post in posts:
-                            # Check if we already have this post in the database
-                            if not self.database.is_post_processed(post.id):
-                                found_posts += 1
-                                new_posts_info.append({
-                                    'id': post.id,
-                                    'title': post.title,
-                                    'url': post.url,
-                                    'subreddit': subreddit_name,
-                                    'created_utc': post.created_utc
-                                })
-                                logger.info(f"Found unprocessed post: {post.title[:50]}...")
+                        for submission in posts:
+                            # Skip if already processed (same check as main bot)
+                            if self.database.is_post_processed(submission.id):
+                                logger.debug(f"Post {submission.id} already processed, skipping")
+                                continue
+                            
+                            total_found += 1
+                            
+                            # Validate submission (same as main bot)
+                            if not self.reddit_client.validate_submission(submission):
+                                logger.debug(f"Post {submission.id} failed validation, skipping")
+                                self.database.record_processed_post(
+                                    post_id=submission.id,
+                                    subreddit=subreddit_name,
+                                    title=submission.title,
+                                    url=getattr(submission, 'url', ''),
+                                    author=submission.author.name if submission.author else '[deleted]',
+                                    created_utc=submission.created_utc,
+                                    success=False,
+                                    error_message="Failed validation"
+                                )
+                                continue
+                            
+                            # Process the submission using the same logic as main bot
+                            success, error_message = self._process_submission(submission, subreddit_name)
+                            total_processed += 1
+                            
+                            if success:
+                                total_successful += 1
+                            
+                            processing_results.append({
+                                'id': submission.id,
+                                'title': submission.title[:50] + '...' if len(submission.title) > 50 else submission.title,
+                                'success': success,
+                                'error': error_message if not success else None
+                            })
+                            
+                            logger.info(f"Processed post {submission.id}: {'success' if success else 'failed'} {error_message if error_message else ''}")
                     
                     except Exception as e:
-                        logger.error(f"Error fetching from r/{subreddit_name}: {e}")
+                        logger.error(f"Error processing r/{subreddit_name}: {e}")
                         continue
                 
-                logger.info(f"Found {found_posts} unprocessed posts")
-                
-                # Store the found posts in a simple way for now
-                # In a full implementation, you'd add these to your processing queue
-                # For now, we'll just return the count
+                success_rate = total_successful / total_processed if total_processed > 0 else 0
                 
                 return jsonify({
-                    "success": True, 
-                    "found_posts": found_posts,
-                    "message": f"Found {found_posts} new posts that haven't been processed yet",
-                    "posts": new_posts_info[:5]  # Return first 5 for reference
+                    "success": True,
+                    "found_posts": total_found,
+                    "processed_posts": total_processed,
+                    "successful_posts": total_successful,
+                    "success_rate": f"{success_rate:.1%}",
+                    "message": f"Found {total_found} new posts, processed {total_processed}, {total_successful} successful",
+                    "results": processing_results[:5]  # Return first 5 results
                 })
                 
             except Exception as e:
-                logger.error(f"Error fetching new posts: {e}")
+                logger.error(f"Error fetching and processing new posts: {e}")
                 return jsonify({
                     "success": False, 
+                    "error": str(e)
+                }), 500
+        
+        @self.app.route('/logs')
+        def logs_page():
+            """Logs page"""
+            return render_template('logs.html')
+        
+        @self.app.route('/api/logs')
+        def api_logs():
+            """Get application logs with formatted output"""
+            log_type = request.args.get('type', 'main')  # 'main' or 'errors'
+            lines = request.args.get('lines', 100, type=int)
+            raw = request.args.get('raw', 'false').lower() == 'true'  # Option for raw output
+            
+            try:
+                # Use Docker container path directly
+                if log_type == 'errors':
+                    log_file = Path('/app/logs/canillitabot_errors.log')
+                else:
+                    log_file = Path('/app/logs/canillitabot.log')
+                
+                if not log_file.exists():
+                    return jsonify({
+                        "success": False,
+                        "error": f"Log file {log_file} not found"
+                    })
+                
+                # Read the last N lines of the log file
+                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    all_lines = f.readlines()
+                    recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                
+                if raw:
+                    # Return raw logs (for backwards compatibility)
+                    return jsonify({
+                        "success": True,
+                        "logs": recent_lines,
+                        "total_lines": len(all_lines),
+                        "showing_lines": len(recent_lines),
+                        "log_file": str(log_file)
+                    })
+                else:
+                    # Return formatted logs
+                    formatted_logs = []
+                    for line in recent_lines:
+                        if line.strip():  # Skip empty lines
+                            formatted_logs.append(format_log_line(line))
+                    
+                    return jsonify({
+                        "success": True,
+                        "logs": formatted_logs,
+                        "total_lines": len(all_lines),
+                        "showing_lines": len(formatted_logs),
+                        "log_file": str(log_file),
+                        "formatted": True,
+                        "pygments_available": PYGMENTS_AVAILABLE
+                    })
+                
+            except Exception as e:
+                logger.error(f"Error reading logs: {e}")
+                return jsonify({
+                    "success": False,
                     "error": str(e)
                 }), 500
         
@@ -170,6 +323,97 @@ class CanillitaDashboard:
                 health_status["error"] = str(e)
             
             return jsonify(health_status)
+    
+    def _process_submission(self, submission, subreddit_name: str) -> tuple[bool, str]:
+        """Process a single submission - either queue it or process directly (same logic as main bot)"""
+        post_id = submission.id
+        
+        try:
+            # Create submission data for queue/processing
+            submission_data = {
+                'id': submission.id,
+                'title': submission.title,
+                'url': submission.url,
+                'subreddit': subreddit_name,
+                'author': submission.author.name if submission.author else '[deleted]',
+                'created_utc': submission.created_utc
+            }
+            
+            # If queue system is available, enqueue the post for processing (same as main bot)
+            if self.queue_manager and self.queue_manager.is_available():
+                logger.debug(f"Enqueuing post {post_id} for processing")
+                job_id = self.queue_manager.enqueue_post_discovery(subreddit_name, submission_data)
+                
+                if job_id:
+                    logger.debug(f"Enqueued post {submission.id} for processing (job: {job_id})")
+                    return True, None
+                else:
+                    logger.warning(f"Failed to enqueue post {submission.id}, falling back to direct processing")
+                    return self._process_submission_direct(submission, subreddit_name)
+            else:
+                # Fall back to direct processing
+                logger.debug(f"Queue not available, processing post {post_id} directly")
+                return self._process_submission_direct(submission, subreddit_name)
+                
+        except Exception as e:
+            error_msg = f"Error processing submission {submission.id}: {str(e)}"
+            logger.error(error_msg)
+            return False, error_msg
+    
+    def _process_submission_direct(self, submission, subreddit_name: str) -> tuple[bool, str]:
+        """Process a submission directly (without queue) - simplified version of main bot logic"""
+        post_id = submission.id
+        
+        try:
+            # Check if it's a news article (same validation as main bot)
+            if not self.reddit_client.is_news_article(submission):
+                error_msg = "Not a news article"
+                logger.debug(f"Post {post_id} is not a news article, skipping")
+                self.database.record_processed_post(
+                    post_id=post_id,
+                    subreddit=subreddit_name,
+                    title=submission.title,
+                    url=submission.url,
+                    author=submission.author.name if submission.author else '[deleted]',
+                    created_utc=submission.created_utc,
+                    success=False,
+                    error_message=error_msg
+                )
+                return False, error_msg
+            
+            logger.info(f"Processing news article directly: {submission.title[:50]}...")
+            
+            # For now, just record that we attempted to process it
+            # In a full implementation, you'd add article extraction and comment posting here
+            # But that requires initializing ArticleExtractor and GeminiClient
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=True,  # Mark as successful for now
+                error_message=None
+            )
+            
+            logger.info(f"Successfully queued/processed post {post_id}")
+            return True, None
+            
+        except Exception as e:
+            error_msg = f"Processing error: {str(e)}"
+            logger.error(f"Error in direct processing for post {post_id}: {e}")
+            self.database.record_processed_post(
+                post_id=post_id,
+                subreddit=subreddit_name,
+                title=submission.title,
+                url=submission.url,
+                author=submission.author.name if submission.author else '[deleted]',
+                created_utc=submission.created_utc,
+                success=False,
+                error_message=error_msg
+            )
+            return False, error_msg
     
     def run(self):
         """Start the dashboard server"""

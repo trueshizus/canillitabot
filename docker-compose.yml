@@ -69,12 +69,16 @@ services:
       - "9000:5000"
     depends_on:
       - canillitabot
+      - redis
     volumes:
       # Mount source code for auto-reload
       - ./src/dashboard:/app/src/dashboard:ro
+      # Ensure logs volume is properly mounted
+      - logs:/app/logs
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=1
+      - REDIS_URL=redis://redis:6379/0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
