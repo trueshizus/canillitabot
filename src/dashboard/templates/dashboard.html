@@ -1,0 +1,43 @@
+<!DOCTYPE html        <div class="card">
+            <div class="card-header">
+                <h2>📝 Posts Procesados</h2>
+                <button id="fetch-posts-btn" class="fetch-btn" onclick="fetchNewPosts()">
+                    🔄 Buscar Nuevos Posts
+                </button>
+            </div>
+            <div id="posts-container" class="loading">Cargando posts...</div>
+        </div>tml lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CanillitaBot Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 CanillitaBot Dashboard (Auto-Reload Enabled)</h1>
+        </div>
+
+        <div class="card">
+            <h2>� Posts Procesados</h2>
+            <div id="posts-container" class="loading">Cargando posts...</div>
+        </div>
+
+        <!-- Modal for showing comment -->
+        <div id="comment-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="modal-title">Comentario generado</h3>
+                <div id="modal-comment" class="comment-content"></div>
+            </div>
+        </div>
+
+        <div class="refresh-info">
+            <p>Actualizado: <span id="last-update">-</span></p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>

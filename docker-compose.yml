@@ -64,14 +64,17 @@ services:
 
   dashboard:
     <<: *canillitabot-base
-    command: ["python", "src/services/dashboard.py", "--host", "0.0.0.0", "--port", "5000"]
+    command: ["python", "-m", "src.dashboard.app", "--host", "0.0.0.0", "--port", "5000", "--debug"]
     ports:
       - "9000:5000"
     depends_on:
       - canillitabot
     volumes:
-      - ./templates:/app/templates:ro
-      - ./static:/app/static:ro
+      # Mount source code for auto-reload
+      - ./src/dashboard:/app/src/dashboard:ro
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
