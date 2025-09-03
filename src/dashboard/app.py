@@ -20,17 +20,15 @@ try:
 except ImportError:
     PYGMENTS_AVAILABLE = False
 
-# Add parent directories to Python path to access core modules
-current_path = Path(__file__).parent
-src_path = current_path.parent
-project_root = src_path.parent
-sys.path.insert(0, str(src_path))
-sys.path.insert(0, str(project_root))
+
 
 from src.core.config import Config
 from src.core.database import Database
 from src.clients.reddit import RedditClient
 from src.shared.queue import QueueManager
+
+# Get the current directory path for template and static folders
+current_path = Path(__file__).parent
 
 logger = logging.getLogger(__name__)
 

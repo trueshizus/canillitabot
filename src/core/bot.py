@@ -1,17 +1,17 @@
 import logging
-from core.config import Config
-from clients.reddit import RedditClient
-from extractors.article import ArticleExtractor
-from core.database import Database
-from clients.gemini import GeminiClient
-from extractors.x import XContentExtractor
-from shared.queue import QueueManager
-from core.monitoring import initialize_monitoring
-from services.health import HealthServer, HealthChecker
-from core.processor import ContentProcessor
-from core.lifecycle import BotLifecycle
-from core.cycle import ProcessingCycle
-from core.submission import SubmissionHandler
+from src.core.config import Config
+from src.clients.reddit import RedditClient
+from src.extractors.article import ArticleExtractor
+from src.core.database import Database
+from src.clients.gemini import GeminiClient
+from src.extractors.x import XContentExtractor
+from src.shared.queue import QueueManager
+from src.core.monitoring import initialize_monitoring
+from src.services.health import HealthServer, HealthChecker
+from src.core.processor import ContentProcessor
+from src.core.lifecycle import BotLifecycle
+from src.core.cycle import ProcessingCycle
+from src.core.submission import SubmissionHandler
 
 logger = logging.getLogger(__name__)
 
@@ -92,3 +92,35 @@ class BotManager:
     def stop(self):
         """Stop the bot"""
         self.lifecycle.stop()
+
+
+def main():
+    """Main entry point when running as module"""
+    import logging
+    from src.shared.utils import setup_logging
+    
+    # Setup basic logging first
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    try:
+        # Initialize and start bot
+        bot = BotManager()
+        
+        # Setup detailed logging based on config
+        setup_logging(bot.config)
+        
+        bot.start()
+        
+    except KeyboardInterrupt:
+        logging.info("Bot stopped by user")
+    except Exception as e:
+        logging.error(f"Bot crashed: {e}")
+        import sys
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

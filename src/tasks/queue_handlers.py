@@ -14,12 +14,12 @@ import json
 src_path = Path(__file__).parent
 sys.path.insert(0, str(src_path))
 
-from core.config import Config
-from core.database import Database
-from clients.reddit import RedditClient
-from extractors.article import ArticleExtractor
-from clients.gemini import GeminiClient
-from extractors.x import XContentExtractor
+from src.core.config import Config
+from src.core.database import Database
+from src.clients.reddit import RedditClient
+from src.extractors.article import ArticleExtractor
+from src.clients.gemini import GeminiClient
+from src.extractors.x import XContentExtractor
 
 # Initialize shared components
 config = Config()
@@ -65,7 +65,7 @@ def process_discovered_post(subreddit: str, submission_data: Dict[str, Any]) -> 
         # The URL in submission_data might have been extracted from a self-post
         if reddit_client.is_news_article_url(url):
             # Route to article processing queue
-            from queue_manager import QueueManager
+            from src.shared.queue import QueueManager
             queue_manager = QueueManager(config)
             job_id = queue_manager.enqueue_article_processing(post_id, url, submission_data)
             
@@ -78,7 +78,7 @@ def process_discovered_post(subreddit: str, submission_data: Dict[str, Any]) -> 
         
         elif config.youtube_enabled and reddit_client.is_youtube_video_url(url):
             # Route to YouTube processing queue
-            from queue_manager import QueueManager
+            from src.shared.queue import QueueManager
             queue_manager = QueueManager(config)
             job_id = queue_manager.enqueue_youtube_processing(post_id, url, submission_data)
             
@@ -91,7 +91,7 @@ def process_discovered_post(subreddit: str, submission_data: Dict[str, Any]) -> 
         
         elif config.x_twitter_enabled and reddit_client.is_x_twitter_post_url(url):
             # Route to Twitter processing queue
-            from queue_manager import QueueManager
+            from src.shared.queue import QueueManager
             queue_manager = QueueManager(config)
             job_id = queue_manager.enqueue_twitter_processing(post_id, url, submission_data)
             

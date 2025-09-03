@@ -4,8 +4,8 @@ import re
 from typing import Optional, Dict, Any, List
 from bs4 import BeautifulSoup, Tag
 from newspaper import Article
-from extractors.providers.base import BaseProvider
-from extractors.formatters import process_article_structure, final_content_cleanup
+from src.extractors.providers.base import BaseProvider
+from src.extractors.formatters import process_article_structure, final_content_cleanup
 
 logger = logging.getLogger(__name__)
 

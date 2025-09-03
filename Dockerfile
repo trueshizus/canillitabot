@@ -47,12 +47,13 @@ RUN mkdir -p data logs
 COPY src/ ./src/
 COPY config/ ./config/
 COPY run.py ./
+COPY docker_run.py ./
 
 # Set permissions
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app/src:/app:/home/canillitabot/.local/lib/python3.11/site-packages
+ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV PATH="/home/canillitabot/.local/bin:$PATH"
 ENV NLTK_DATA="/home/canillitabot/nltk_data"
 
@@ -93,7 +94,7 @@ COPY . .
 RUN chown -R canillitabot:canillitabot /app
 
 # Set environment variables
-ENV PYTHONPATH=/app/src:/app:/home/canillitabot/.local/lib/python3.11/site-packages
+ENV PYTHONPATH=/app:/home/canillitabot/.local/lib/python3.11/site-packages
 ENV NLTK_DATA="/tmp/nltk_data"
 
 # Switch to non-root user

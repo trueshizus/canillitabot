@@ -8,7 +8,7 @@ import signal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from core.bot import BotManager
+    from src.core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 

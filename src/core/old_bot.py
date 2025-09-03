@@ -1,16 +1,16 @@
 import time
 import logging
 import signal
-from core.config import Config
-from clients.reddit import RedditClient
-from extractors.article import ArticleExtractor
-from core.database import Database
-from clients.gemini import GeminiClient
-from extractors.x import XContentExtractor
-from shared.queue import QueueManager
-from core.monitoring import initialize_monitoring
-from shared.utils import PerformanceLogger, metrics, error_tracker
-from services.health import HealthServer, HealthChecker
+from src.core.config import Config
+from src.clients.reddit import RedditClient
+from src.extractors.article import ArticleExtractor
+from src.core.database import Database
+from src.clients.gemini import GeminiClient
+from src.extractors.x import XContentExtractor
+from src.shared.queue import QueueManager
+from src.core.monitoring import initialize_monitoring
+from src.shared.utils import PerformanceLogger, metrics, error_tracker
+from src.services.health import HealthServer, HealthChecker
 
 logger = logging.getLogger(__name__)
 

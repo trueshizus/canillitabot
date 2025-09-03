@@ -1,7 +1,7 @@
 import praw
 import logging
 from typing import Optional
-from core.config import Config
+from src.core.config import Config
 
 logger = logging.getLogger(__name__)
 

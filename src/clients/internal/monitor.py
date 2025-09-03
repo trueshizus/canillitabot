@@ -2,7 +2,7 @@ import time
 import logging
 from typing import Iterator, List
 from praw.models import Submission
-from core.config import Config
+from src.core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -109,3 +109,46 @@ class PostMonitor:
         except Exception as e:
             logger.error(f"Error fetching submission by ID {submission_id}: {e}")
             return None
+
+    def is_news_article_url(self, url: str) -> bool:
+        """Check if URL is from a news domain"""
+        if not url:
+            return False
+        
+        # Check if URL domain is in news domains
+        for domain in self.config.news_domains:
+            if domain in url.lower():
+                # Make sure it's not in blocked domains
+                for blocked in self.config.blocked_domains:
+                    if blocked in url.lower():
+                        return False
+                return True
+        
+        return False
+
+    def is_youtube_video_url(self, url: str) -> bool:
+        """Check if URL is a YouTube video link"""
+        if not url:
+            return False
+        
+        # Check for YouTube URLs
+        youtube_domains = ['youtube.com', 'youtu.be', 'www.youtube.com']
+        url_lower = url.lower()
+        
+        return any(domain in url_lower for domain in youtube_domains)
+
+    def is_x_twitter_post_url(self, url: str) -> bool:
+        """Check if URL is an X/Twitter post link"""
+        if not url:
+            return False
+        
+        # Check for X/Twitter URLs
+        x_twitter_domains = ['twitter.com', 'x.com', 'www.twitter.com', 'www.x.com']
+        url_lower = url.lower()
+        
+        # Check if URL contains X/Twitter domain and a status/tweet ID pattern
+        for domain in x_twitter_domains:
+            if domain in url_lower and ('/status/' in url_lower or '/i/web/status/' in url_lower):
+                return True
+        
+        return False

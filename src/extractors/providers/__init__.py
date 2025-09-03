@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
-from extractors.providers.default import DefaultProvider
-from extractors.providers.infobae import InfobaeProvider
+from src.extractors.providers.default import DefaultProvider
+from src.extractors.providers.infobae import InfobaeProvider
 
 PROVIDER_MAPPING = {
     "infobae.com": InfobaeProvider,

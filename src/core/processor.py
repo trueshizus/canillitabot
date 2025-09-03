@@ -5,12 +5,12 @@ Content processing logic for the CanillitaBot.
 import logging
 from typing import Dict, Any
 from praw.models import Submission
-from core.config import Config
-from core.database import Database
-from clients.reddit import RedditClient
-from extractors.article import ArticleExtractor
-from clients.gemini import GeminiClient
-from extractors.x import XContentExtractor
+from src.core.config import Config
+from src.core.database import Database
+from src.clients.reddit import RedditClient
+from src.extractors.article import ArticleExtractor
+from src.clients.gemini import GeminiClient
+from src.extractors.x import XContentExtractor
 
 logger = logging.getLogger(__name__)
 

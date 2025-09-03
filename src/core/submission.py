@@ -5,10 +5,10 @@ Submission handling for the CanillitaBot.
 import logging
 from typing import TYPE_CHECKING
 from praw.models import Submission
-from shared.utils import error_tracker
+from src.shared.utils import error_tracker
 
 if TYPE_CHECKING:
-    from core.bot import BotManager
+    from src.core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 

@@ -6,20 +6,14 @@ Processes queued jobs for article extraction, YouTube summarization, and Twitter
 
 import sys
 import logging
-from pathlib import Path
 import signal
 import time
 import os
 from typing import List
-
-# Add src directory to Python path
-src_path = Path(__file__).parent
-sys.path.insert(0, str(src_path))
-
 from rq import Worker, Connection
 import redis
-from core.config import Config
-from shared.utils import setup_logging
+from src.core.config import Config
+from src.shared.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 

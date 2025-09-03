@@ -4,10 +4,10 @@ Processing cycle for the CanillitaBot.
 
 import logging
 from typing import TYPE_CHECKING
-from shared.utils import PerformanceLogger, metrics, error_tracker
+from src.shared.utils import PerformanceLogger, metrics, error_tracker
 
 if TYPE_CHECKING:
-    from core.bot import BotManager
+    from src.core.bot import BotManager
 
 logger = logging.getLogger(__name__)
 

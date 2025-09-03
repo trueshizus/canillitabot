@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import json
 
-from core.config import Config
+from src.core.config import Config
 
 logger = logging.getLogger(__name__)
 
