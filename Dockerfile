@@ -1,7 +1,7 @@
 # Multi-stage build for optimized production images
 
 # Build stage - includes build dependencies and creates the venv
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -34,7 +34,7 @@ WORKDIR /app
 # ---
 
 # Production stage - minimal runtime image
-FROM python:3.11-slim AS production
+FROM python:3.12-slim AS production
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \

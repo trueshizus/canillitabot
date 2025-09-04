@@ -42,6 +42,9 @@ news_domains:
   - economiaynegocios.com.ar
   - eleconomista.com.ar
 
+ # Others
+  - zona-militar.com
+
 blocked_domains:
   - reddit.com
   - imgur.com
