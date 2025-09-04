@@ -53,7 +53,7 @@ def test_url_detection():
         is_youtube = monitor.is_youtube_video(mock_submission)
         print(f"  {url:<50} → YouTube: {is_youtube}")
     
-    return True
+    assert True
 
 def test_config_integration():
     """Test configuration integration"""
@@ -66,7 +66,7 @@ def test_config_integration():
     print(f"  YouTube template: {config.youtube_summary_template[:50]}...")
     print(f"  Gemini API key configured: {'Yes' if config.gemini_api_key else 'No'}")
     
-    return True
+    assert True
 
 def main():
     """Run all integration tests"""
@@ -89,12 +89,11 @@ def main():
         print("   2. Post a YouTube video link in your configured subreddit")
         print("   3. Watch the bot generate a summary!")
         
-        return True
+        assert True
         
     except Exception as e:
         print(f"\n❌ Integration test failed: {e}")
-        return False
+        assert False, f"Integration test failed: {e}"
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    main()

@@ -37,3 +37,7 @@ health:
 	@./venv/bin/python -c "from src.core.config import Config; c = Config(); c.validate(); print('✓ Configuration valid')"
 	@./venv/bin/python -c "from src.core.database import Database; from src.core.config import Config; db = Database(Config()); print('✓ Database accessible')"
 	@echo "Health check complete."
+
+test:
+	@echo "Running tests..."
+	@docker compose run --rm test

@@ -37,7 +37,7 @@ def test_gemini_basic():
         print("🔧 Testing connection...")
         if not client.test_connection():
             print("❌ Connection test failed!")
-            return False
+            assert False, "Gemini connection test failed"
         
         print("✅ Connection test passed!")
         
@@ -51,16 +51,15 @@ def test_gemini_basic():
         print("-" * 50)
         
         print("\n✅ Basic Gemini test completed successfully!")
-        return True
+        assert True
         
     except ValueError as e:
         print(f"❌ Configuration error: {e}")
         print("\n💡 Make sure you have set the GEMINI_API_KEY environment variable")
-        return False
+        assert False, f"Configuration error: {e}"
     except Exception as e:
         print(f"❌ Error: {e}")
-        return False
+        assert False, f"An unexpected error occurred: {e}"
 
 if __name__ == "__main__":
-    success = test_gemini_basic()
-    sys.exit(0 if success else 1)
+    test_gemini_basic()

@@ -1,4 +1,3 @@
-
 x-canillitabot-base: &canillitabot-base
   build:
     context: .
@@ -85,6 +84,25 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  test:
+    build:
+      context: .
+      target: builder
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - TESTING=true
+      - VIRTUAL_ENV=/opt/venv
+      - PATH=/opt/venv/bin:$PATH
+    networks:
+      - canillitabot-network
+    volumes:
+      - .:/app
+    command: ["/opt/venv/bin/pytest", "-v"]
+    depends_on:
+      redis:
+        condition: service_healthy
 
 networks:
   canillitabot-network:

@@ -91,19 +91,19 @@ def test_infobae_extraction():
                 else:
                     print(f"✓ '{pattern_name}' pattern successfully removed")
             
-            return True
+            assert article_data is not None, "Article data should not be None"
+            assert 'últimas noticias' not in article_data['content'].lower(), "'Últimas noticias' section should be removed"
             
         else:
             print("❌ EXTRACTION FAILED")
             print("No article data returned")
-            return False
+            assert False, "Extraction failed, no article data returned"
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"An exception occurred: {e}"
 
 if __name__ == "__main__":
-    success = test_infobae_extraction()
-    sys.exit(0 if success else 1)
+    test_infobae_extraction()
