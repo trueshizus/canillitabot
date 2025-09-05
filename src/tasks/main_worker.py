@@ -5,10 +5,14 @@ Processes queued jobs for article extraction, YouTube summarization, and Twitter
 """
 
 import sys
+import os
+
+# Add the project root to Python path to enable imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 import logging
 import signal
 import time
-import os
 from typing import List
 from rq import Worker, Connection
 import redis

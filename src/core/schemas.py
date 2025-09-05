@@ -66,7 +66,7 @@ class YouTubeConfig:
 
 *[Link al video]({url})*
 
-^(CanillitaBot v1.0 - Resumiendo videos para hacerlos más accesibles.)"""
+^(CanillitaBot v1.1 - Resumiendo videos para hacerlos más accesibles.)"""
 
 @dataclass
 class TwitterConfig:
@@ -84,7 +84,7 @@ class TwitterConfig:
 
 *[Ver post original]({url})*
 
-^(CanillitaBot v1.0 - Compartiendo contenido de X para hacerlo más accesible.)"""
+^(CanillitaBot v1.1 - Compartiendo contenido de X para hacerlo más accesible.)"""
 
 @dataclass
 class BotConfig:
@@ -97,7 +97,7 @@ class BotConfig:
 
 *[Link a la noticia]({url})*
 
-^(CanillitaBot v1.0 - Compartiendo noticias para hacerlas más accesibles.)"""
+^(CanillitaBot v1.1 - Compartiendo noticias para hacerlas más accesibles.)"""
     continuation_template: str = "{content}"
     max_comment_length: int = 10000
     check_interval: int = 30

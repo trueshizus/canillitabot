@@ -14,7 +14,7 @@ youtube:
     
     *[Link al video]({url})*
 
-    ^(CanillitaBot v1.0 - Resumiendo videos para hacerlos más accesibles.)
+    ^(CanillitaBot v1.1 - Resumiendo videos para hacerlos más accesibles.)
 
 x_twitter:
   enabled: true  # Enable X/Twitter post processing
@@ -31,7 +31,7 @@ x_twitter:
     
     *[Ver post original]({url})*
 
-    ^(CanillitaBot v1.0 - Compartiendo contenido de X para hacerlo más accesible.)
+    ^(CanillitaBot v1.1 - Compartiendo contenido de X para hacerlo más accesible.)
 
 bot:
   comment_template: |    
@@ -43,7 +43,7 @@ bot:
     
     *[Link a la noticia]({url})*
 
-    ^(CanillitaBot v1.0 - Compartiendo noticias para hacerlas más accesibles.)
+    ^(CanillitaBot v1.1 - Compartiendo noticias para hacerlas más accesibles.)
 
   continuation_template: |
     {content}

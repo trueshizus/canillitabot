@@ -49,6 +49,9 @@ services:
   canillitabot-worker:
     <<: *canillitabot-base
     command: ["python", "src/tasks/main_worker.py"]
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       redis:
         condition: service_healthy
