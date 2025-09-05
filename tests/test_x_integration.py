@@ -8,8 +8,8 @@ import os
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from config import Config
-from x_extractor import XContentExtractor
+from src.core.config import Config
+from src.extractors.x import XContentExtractor
 
 def test_x_twitter_config():
     """Test X/Twitter configuration loading"""

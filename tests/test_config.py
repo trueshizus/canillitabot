@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from config import Config
+from src.core.config import Config
 
 def test_config():
     print("Testing configuration...")

@@ -8,14 +8,14 @@ sys.path.insert(0, str(src_path))
 import unittest
 from unittest.mock import MagicMock, patch
 import pytest
-from src.bot import BotManager
+from src.core.bot import BotManager
 
 @pytest.fixture
 def bot_manager():
-    with patch('src.bot.Config') as MockConfig, \
-         patch('src.bot.RedditClient') as MockRedditClient, \
-         patch('src.bot.ArticleExtractor') as MockArticleExtractor, \
-         patch('src.bot.Database') as MockDatabase:
+    with patch('src.core.bot.Config') as MockConfig, \
+         patch('src.core.bot.RedditClient') as MockRedditClient, \
+         patch('src.core.bot.ArticleExtractor') as MockArticleExtractor, \
+         patch('src.core.bot.Database') as MockDatabase:
 
         # Configure mocks
         mock_config = MockConfig.return_value

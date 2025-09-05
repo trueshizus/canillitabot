@@ -61,7 +61,16 @@ database:
   path: "data/processed_posts.db"
   cleanup_days: 30  # remove entries older than this
 
+queue:
+  enabled: true  # Enable Redis-based queue processing
+  redis_url: "redis://localhost:6379/0"  # Redis connection URL
+  worker_timeout: 300  # Worker job timeout in seconds
+  retry_delays: [300, 900, 2700]  # Retry delays in seconds (5min, 15min, 45min)
+  max_retries: 3  # Maximum number of retries for failed jobs
+
 logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "logs/canillitabot.log"
+  structured: true  # Enable JSON structured logging
+  error_tracking: true  # Enable error tracking and metrics
