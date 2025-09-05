@@ -32,9 +32,17 @@ class Database:
                         error_message TEXT,
                         article_title TEXT,
                         article_content_length INTEGER,
-                        extraction_method TEXT
+                        extraction_method TEXT,
+                        comment_content TEXT
                     )
                 ''')
+                
+                # Add comment_content column if it doesn't exist (for existing databases)
+                try:
+                    conn.execute('ALTER TABLE processed_posts ADD COLUMN comment_content TEXT')
+                except sqlite3.OperationalError:
+                    # Column already exists
+                    pass
                 
                 conn.execute('''
                     CREATE INDEX IF NOT EXISTS idx_post_id ON processed_posts(post_id)
@@ -79,7 +87,8 @@ class Database:
         created_utc: float,
         success: bool,
         error_message: Optional[str] = None,
-        article_data: Optional[Dict[str, Any]] = None
+        article_data: Optional[Dict[str, Any]] = None,
+        comment_content: Optional[str] = None
     ) -> bool:
         """Record a processed post in the database"""
         try:
@@ -97,12 +106,12 @@ class Database:
                     INSERT OR REPLACE INTO processed_posts (
                         post_id, subreddit, title, url, author, created_utc,
                         success, error_message, article_title, article_content_length,
-                        extraction_method
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        extraction_method, comment_content
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     post_id, subreddit, title[:500], url, author, created_utc,
                     success, error_message, article_title, article_content_length,
-                    extraction_method
+                    extraction_method, comment_content
                 ))
                 conn.commit()
                 
@@ -238,6 +247,41 @@ class Database:
         except sqlite3.Error as e:
             logger.error(f"Error vacuuming database: {e}")
     
+    def get_post_details(self, post_id: str) -> Optional[Dict[str, Any]]:
+        """Get detailed information about a specific post"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                cursor = conn.execute('''
+                    SELECT * FROM processed_posts
+                    WHERE post_id = ?
+                ''', (post_id,))
+                
+                row = cursor.fetchone()
+                return dict(row) if row else None
+                
+        except sqlite3.Error as e:
+            logger.error(f"Error getting post details for {post_id}: {e}")
+            return None
+    
+    def remove_processed_post(self, post_id: str) -> bool:
+        """Remove a post from the processed posts table to allow reprocessing"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    DELETE FROM processed_posts
+                    WHERE post_id = ?
+                ''', (post_id,))
+                
+                deleted_count = cursor.rowcount
+                logger.info(f"Removed post {post_id} from processed posts (deleted {deleted_count} records)")
+                return deleted_count > 0
+                
+        except sqlite3.Error as e:
+            logger.error(f"Error removing post {post_id}: {e}")
+            return False
+
     def close(self):
         """Close database connections (cleanup method)"""
         # SQLite connections are automatically closed when context managers exit

@@ -167,6 +167,9 @@ def process_article(post_id: str, url: str, submission_data: Dict[str, Any]) -> 
             
             comment_success = reddit_client.post_comments(submission, formatted_comments)
             
+            # Join multiple comments with separator for storage
+            comment_content_for_db = "\n\n---\n\n".join(formatted_comments) if formatted_comments else None
+            
             # Record the result
             database.record_processed_post(
                 post_id=post_id,
@@ -177,7 +180,8 @@ def process_article(post_id: str, url: str, submission_data: Dict[str, Any]) -> 
                 created_utc=submission_data.get('created_utc', 0),
                 success=comment_success,
                 error_message="Comment posting failed" if not comment_success else None,
-                article_data=article_data
+                article_data=article_data,
+                comment_content=comment_content_for_db
             )
             
             if comment_success:
@@ -258,7 +262,8 @@ def process_youtube_video(post_id: str, url: str, submission_data: Dict[str, Any
             author=submission_data.get('author', '[deleted]'),
             created_utc=submission_data.get('created_utc', 0),
             success=comment_success,
-            error_message=None if comment_success else "Comment posting failed"
+            error_message=None if comment_success else "Comment posting failed",
+            comment_content=formatted_comment if comment_success else None
         )
         
         if comment_success:
@@ -354,7 +359,8 @@ def process_twitter_post(post_id: str, url: str, submission_data: Dict[str, Any]
             author=submission_data.get('author', '[deleted]'),
             created_utc=submission_data.get('created_utc', 0),
             success=comment_success,
-            error_message=None if comment_success else "Comment posting failed"
+            error_message=None if comment_success else "Comment posting failed",
+            comment_content=formatted_comment if comment_success else None
         )
         
         if comment_success:

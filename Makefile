@@ -1,5 +1,12 @@
 # CanillitaBot Makefile
 
+# Default SSH host alias for production deploys (configurable)
+HOST ?= bot
+# Remote directory where the repo lives (relative to remote user's $HOME or absolute)
+REMOTE_DIR ?= canillitabot
+# Git branch to deploy
+BRANCH ?= main
+
 .PHONY: help up stop build deploy health
 
 help:
@@ -20,17 +27,15 @@ build:
 	@docker compose build
 
 deploy:
-	@echo "Deploying to production..."
-	@if [ -z "$(SERVER)" ]; then \
-		echo "Error: SERVER variable not set. Usage: make deploy SERVER=your-droplet-ip"; \
-		exit 1; \
-	fi
-	@echo "Building and pushing to $(SERVER)..."
-	@docker save canillitabot:latest | ssh root@$(SERVER) 'docker load'
-	@scp docker-compose.yml root@$(SERVER):/opt/canillitabot/
-	@scp .env root@$(SERVER):/opt/canillitabot/
-	@ssh root@$(SERVER) 'cd /opt/canillitabot && docker compose down && docker compose up -d'
-	@echo "Deployment complete!"
+	@echo "Deploying to production host: $(HOST) in '$(REMOTE_DIR)' on branch '$(BRANCH)'"
+	@ssh $(HOST) 'set -euo pipefail; \
+		cd $(REMOTE_DIR) && \
+		git fetch --all --prune && \
+		( git rev-parse --verify $(BRANCH) >/dev/null 2>&1 && git checkout $(BRANCH) || true ) && \
+		git pull --rebase --autostash origin $(BRANCH) && \
+		docker compose build && \
+		docker compose up -d && \
+		docker compose ps'
 
 health:
 	@echo "Checking bot health..."

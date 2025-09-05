@@ -74,6 +74,8 @@ services:
       - ./src/dashboard:/app/src/dashboard:ro
       # Ensure logs volume is properly mounted
       - logs:/app/logs
+      # Ensure data volume is properly mounted for database access
+      - data:/app/data
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=1

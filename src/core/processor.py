@@ -77,6 +77,9 @@ class ContentProcessor:
         
         comment_success = self.reddit_client.post_comments(submission, formatted_comments)
         
+        # Join multiple comments with separator for storage
+        comment_content_for_db = "\n\n---\n\n".join(formatted_comments) if formatted_comments else None
+        
         self.database.record_processed_post(
             post_id=post_id,
             subreddit=subreddit_name,
@@ -86,7 +89,8 @@ class ContentProcessor:
             created_utc=submission.created_utc,
             success=comment_success,
             error_message="Comment posting failed" if not comment_success else None,
-            article_data=article_data
+            article_data=article_data,
+            comment_content=comment_content_for_db
         )
         
         if comment_success:
@@ -119,7 +123,8 @@ class ContentProcessor:
                 author=submission.author.name if submission.author else '[deleted]',
                 created_utc=submission.created_utc,
                 success=comment_success,
-                error_message=None if comment_success else "Comment posting failed"
+                error_message=None if comment_success else "Comment posting failed",
+                comment_content=formatted_comment if comment_success else None
             )
             
             if comment_success:
@@ -188,7 +193,8 @@ class ContentProcessor:
                 author=submission.author.name if submission.author else '[deleted]',
                 created_utc=submission.created_utc,
                 success=comment_success,
-                error_message=None if comment_success else "Comment posting failed"
+                error_message=None if comment_success else "Comment posting failed",
+                comment_content=formatted_comment if comment_success else None
             )
             
             if comment_success:

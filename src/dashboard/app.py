@@ -139,21 +139,75 @@ class CanillitaDashboard:
             
             return jsonify(posts)
         
+        @self.app.route('/api/posts/<post_id>')
+        def api_post_detail(post_id):
+            """Get detailed information for a specific post including comment content"""
+            try:
+                posts = self.database.get_recent_posts(1000)  # Get more posts to find the specific one
+                post = next((p for p in posts if p['post_id'] == post_id), None)
+                
+                if not post:
+                    return jsonify({"error": "Post not found"}), 404
+                
+                # Convert timestamps to readable format
+                if post.get('processed_at'):
+                    post['processed_at_readable'] = datetime.fromisoformat(
+                        post['processed_at'].replace('Z', '+00:00')
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+                if post.get('created_utc'):
+                    post['created_readable'] = datetime.fromtimestamp(
+                        post['created_utc']
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+                
+                return jsonify(post)
+                
+            except Exception as e:
+                logger.error(f"Error getting post details for {post_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.app.route('/api/retry-post/<post_id>', methods=['POST'])
         def api_retry_post(post_id):
-            """Retry processing a post"""
+            """Retry processing a post by adding it back to the queue"""
             try:
-                # Here you would add the post back to the queue or processing system
-                # For now, we'll just return a success response
-                # In a real implementation, you'd want to:
-                # 1. Get the post details from the database
-                # 2. Add it back to the processing queue
-                # 3. Return appropriate response
-                
                 logger.info(f"Retry requested for post: {post_id}")
                 
-                # Mock implementation - you'd implement actual retry logic here
-                return jsonify({"success": True, "message": "Post queued for retry"})
+                # Get post details from database
+                post_details = self.database.get_post_details(post_id)
+                if not post_details:
+                    return jsonify({"success": False, "error": "Post not found in database"}), 404
+                
+                # Create submission data for reprocessing
+                submission_data = {
+                    'id': post_id,
+                    'title': post_details['title'],
+                    'url': post_details['url'],
+                    'subreddit': post_details['subreddit'],
+                    'author': post_details['author'],
+                    'created_utc': post_details['created_utc']
+                }
+                
+                # Initialize queue manager and add post for reprocessing
+                from src.shared.queue import QueueManager
+                queue_manager = QueueManager(self.config)
+                
+                if queue_manager.is_available():
+                    # Remove existing record to allow reprocessing
+                    self.database.remove_processed_post(post_id)
+                    
+                    # Add back to discovery queue for reprocessing
+                    job_id = queue_manager.enqueue_post_discovery(post_details['subreddit'], submission_data)
+                    
+                    if job_id:
+                        logger.info(f"Successfully requeued post {post_id} for processing (job: {job_id})")
+                        return jsonify({
+                            "success": True, 
+                            "message": "Post queued for retry",
+                            "job_id": job_id
+                        })
+                    else:
+                        return jsonify({"success": False, "error": "Failed to add post to queue"}), 500
+                else:
+                    return jsonify({"success": False, "error": "Queue system not available"}), 503
                 
             except Exception as e:
                 logger.error(f"Error retrying post {post_id}: {e}")

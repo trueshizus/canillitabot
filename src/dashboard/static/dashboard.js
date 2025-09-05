@@ -43,11 +43,53 @@ function showComment(postId, title, comment, errorMessage = null) {
             </div>
         `;
     } else {
-        // Show comment or default message
+        // Show comment as plain text (no markdown rendering)
         modalComment.textContent = comment || 'No se generó comentario para este post.';
     }
     
     modal.style.display = 'block';
+}
+
+// Show comment by fetching from API (safer approach)
+function showCommentFromAPI(postId, title) {
+    const modal = document.getElementById('comment-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalComment = document.getElementById('modal-comment');
+    
+    modalTitle.textContent = title;
+    modalComment.textContent = 'Cargando comentario...';
+    modal.style.display = 'block';
+    
+    fetch(`/api/posts/${postId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                modalComment.innerHTML = `
+                    <div style="color: #e74c3c; background: #fdf2f2; padding: 10px; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                        <strong>❌ Error:</strong><br>
+                        ${data.error}
+                    </div>
+                `;
+            } else if (data.error_message) {
+                modalComment.innerHTML = `
+                    <div style="color: #e74c3c; background: #fdf2f2; padding: 10px; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                        <strong>❌ Error de procesamiento:</strong><br>
+                        ${data.error_message}
+                    </div>
+                `;
+            } else {
+                modalComment.textContent = data.comment_content || 'No se generó comentario para este post.';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching comment:', error);
+            modalComment.innerHTML = `
+                <div style="color: #e74c3c; background: #fdf2f2; padding: 10px; border-radius: 5px; border-left: 4px solid #e74c3c;">
+                    <strong>❌ Error de conexión:</strong><br>
+                    No se pudo cargar el comentario
+                </div>
+            `;
+        });
 }
 
 // Retry post processing
@@ -190,7 +232,7 @@ function loadPosts() {
                     <tr>
                         <td>
                             <span class="post-title" 
-                                  onclick="showComment('${post.post_id}', '${post.title.replace(/'/g, "\\'")}', '${(post.comment_text || '').replace(/'/g, "\\'")}', '${(post.error_message || '').replace(/'/g, "\\'")}')">
+                                  onclick="showCommentFromAPI('${post.post_id}', '${post.title.replace(/'/g, "\\'")}')">
                                 ${truncatedTitle}
                             </span>
                         </td>
